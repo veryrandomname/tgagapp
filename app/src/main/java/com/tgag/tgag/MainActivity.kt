@@ -6,7 +6,9 @@ import android.graphics.Bitmap
 import android.opengl.Visibility
 import android.os.Bundle
 import android.util.Base64
+import android.util.Log
 import android.view.MotionEvent
+import android.view.VelocityTracker
 import android.view.View
 import android.widget.ImageView
 import android.widget.TextView
@@ -26,6 +28,7 @@ import java.security.SecureRandom
 import java.util.*
 import kotlin.collections.HashMap
 import kotlin.collections.HashSet
+import kotlin.math.max
 import kotlin.math.pow
 
 data class Meme(val itemID: Int, val bitmap : Bitmap , val author : String)
@@ -192,12 +195,19 @@ class MainActivity : AppCompatActivity() {
                 update_back_meme()
             }
 
+            var mVelocityTracker: VelocityTracker? = null
+
 
             frontImage.setOnTouchListener { v, event ->
                 when (event.action) {
                     MotionEvent.ACTION_DOWN -> {
                         frontImage.animate().cancel()
                         lastx = event.rawX
+
+                        mVelocityTracker?.clear()
+                        mVelocityTracker = mVelocityTracker ?: VelocityTracker.obtain()
+                        mVelocityTracker?.addMovement(event)
+
                         true
                     }
                     MotionEvent.ACTION_MOVE -> {
@@ -222,9 +232,34 @@ class MainActivity : AppCompatActivity() {
                             t2.text = ""
                             ratingvisual.alpha = 0f
                         }
+                        mVelocityTracker?.addMovement(event)
+
                         true
                     }
                     MotionEvent.ACTION_UP -> {
+
+                        mVelocityTracker?.apply {
+                            val pointerId: Int = event.getPointerId(event.actionIndex)
+                            addMovement(event)
+                            // When you want to determine the velocity, call
+                            // computeCurrentVelocity(). Then call getXVelocity()
+                            // and getYVelocity() to retrieve the velocity for each pointer ID.
+                            computeCurrentVelocity(1000)
+                            // Log velocity of pixels per second
+                            // Best practice to use VelocityTrackerCompat where possible.
+                            val xvel = getXVelocity(pointerId)
+                            //Log.d("", "X velocity: ${getXVelocity(pointerId)}")
+                            //Log.d("", "Y velocity: ${getYVelocity(pointerId)}")
+
+                            if (xvel > 100)
+                                t2.text = "like"
+                            else if(xvel < -100)
+                                t2.text = "dislike"
+                        }
+
+                        mVelocityTracker?.recycle()
+                        mVelocityTracker = null
+
                         //img.x = defaultx
                         frontImage.animate().x(defaultx)
                         //img2.animate().alpha(0f)
@@ -243,6 +278,9 @@ class MainActivity : AppCompatActivity() {
 
                             update_back_meme()
                         }
+
+
+
                         false
                     }
                     else -> {
