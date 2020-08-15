@@ -10,6 +10,7 @@ import android.os.Bundle
 import android.provider.MediaStore
 import android.util.Base64
 import android.view.*
+import android.webkit.MimeTypeMap
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
@@ -22,6 +23,7 @@ import com.android.volley.toolbox.Volley
 import kotlinx.android.synthetic.main.activity_main.*
 import org.json.JSONObject
 import java.io.File
+import java.io.InputStream
 import java.net.CookieHandler
 import java.net.CookieManager
 import java.security.SecureRandom
@@ -33,13 +35,21 @@ import kotlin.math.pow
 
 data class Meme(val itemID: Int, val bitmap: Bitmap, val author: String)
 
+object SingletonQueue {
+    private var queue : RequestQueue? = null
+
+    fun getQueue( ctx : Context) : RequestQueue{
+        if(queue == null)
+            queue = Volley.newRequestQueue(ctx)
+
+        return queue!!
+    }
+}
+
 class MainActivity : AppCompatActivity() {
 
     private var uniqueID: String? = null
     private var password: String? = null
-
-    private var queue: RequestQueue? = null
-
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
         // R.menu.mymenu is a reference to an xml file named mymenu.xml which should be inside your res/menu directory.
@@ -48,33 +58,30 @@ class MainActivity : AppCompatActivity() {
         return super.onCreateOptionsMenu(menu)
     }
 
+    private fun fileUpload(imgUri: Uri){
+        val filetype = MimeTypeMap.getSingleton().getExtensionFromMimeType(contentResolver.getType(imgUri))
+
+        val freq = FileRequest(Request.Method.POST, "https://tgag.app/upload", contentResolver.openInputStream(imgUri)!!, "androidupload.$filetype", Response.Listener { response ->
+        }, Response.ErrorListener { error ->
+        })
+
+        SingletonQueue.getQueue(applicationContext).add(freq)
+    }
+
     override fun onActivityResult(
         requestCode: Int,
         resultCode: Int,
         intent: Intent?
     ) {
-
         if (intent?.clipData != null) {
             val count: Int = intent.clipData!!.itemCount
             for (i in 0 until count) {
                 val imgUri: Uri = intent.clipData!!.getItemAt(i).uri
-
-                val freq = FileRequest(Request.Method.POST, "https://tgag.app/upload", contentResolver.openInputStream(imgUri)!!, "dickman.jpg", Response.Listener { response ->
-                }, Response.ErrorListener { error ->
-                })
-
-                queue!!.add(freq)
+                fileUpload(imgUri)
             }
         } else if (intent?.data != null) {
             val imgUri: Uri = intent.data!!
-
-            val freq = FileRequest(Request.Method.POST, "https://tgag.app/upload", contentResolver.openInputStream(imgUri)!!, "dickman.jpg", Response.Listener { response ->
-                textView2.text = response.data.toString()
-            }, Response.ErrorListener { error ->
-                textView2.text = "up eror"
-            })
-
-            queue!!.add(freq)
+            fileUpload(imgUri)
         }
 
         super.onActivityResult(requestCode, resultCode, intent)
@@ -99,6 +106,7 @@ class MainActivity : AppCompatActivity() {
         R.id.my_memes -> {
             // User chose the "Favorite" action, mark the current item
             // as a favorite...
+
             true
         }
 
@@ -120,8 +128,6 @@ class MainActivity : AppCompatActivity() {
 
 
         CookieHandler.setDefault(CookieManager())
-
-        queue = Volley.newRequestQueue(this)
 
         val t2 = findViewById<TextView>(R.id.textView2)
         val t = findViewById<TextView>(R.id.textView)
@@ -164,7 +170,7 @@ class MainActivity : AppCompatActivity() {
                             t.text = error.message
 
                         })
-                    queue!!.add(req)
+                    SingletonQueue.getQueue(applicationContext).add(req)
                 }
 
             }
@@ -202,7 +208,7 @@ class MainActivity : AppCompatActivity() {
                                         { error -> t.text = error.message })
 
                                 //queue.add(jsonObjectRequest)
-                                queue!!.add(imReq)
+                                SingletonQueue.getQueue(applicationContext).add(imReq)
                             }
                         }
                     },
@@ -213,7 +219,7 @@ class MainActivity : AppCompatActivity() {
                     }
                 )
 
-                queue!!.add(jsonObjectRequest)
+                SingletonQueue.getQueue(applicationContext).add(jsonObjectRequest)
 
             }
 
@@ -405,7 +411,7 @@ class MainActivity : AppCompatActivity() {
                 }
             )
 
-            queue!!.add(jsonObjectRequest)
+            SingletonQueue.getQueue(applicationContext).add(jsonObjectRequest)
 
         } else {
             password = pref.getString("pw", null)
@@ -428,7 +434,7 @@ class MainActivity : AppCompatActivity() {
 
                 }
             )
-            queue!!.add(jsonObjectRequest)
+            SingletonQueue.getQueue(applicationContext).add(jsonObjectRequest)
 
         }
 
