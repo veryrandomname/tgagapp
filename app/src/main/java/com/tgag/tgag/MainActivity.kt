@@ -2,41 +2,113 @@ package com.tgag.tgag
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.Intent
+import android.database.Cursor
 import android.graphics.Bitmap
-import android.opengl.Visibility
+import android.net.Uri
 import android.os.Bundle
+import android.provider.MediaStore
 import android.util.Base64
-import android.util.Log
-import android.view.MotionEvent
-import android.view.VelocityTracker
-import android.view.View
+import android.view.*
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.graphics.red
-import androidx.core.view.isVisible
 import com.android.volley.Request
+import com.android.volley.RequestQueue
 import com.android.volley.Response
 import com.android.volley.toolbox.ImageRequest
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
 import kotlinx.android.synthetic.main.activity_main.*
 import org.json.JSONObject
+import java.io.File
 import java.net.CookieHandler
 import java.net.CookieManager
 import java.security.SecureRandom
 import java.util.*
 import kotlin.collections.HashMap
 import kotlin.collections.HashSet
-import kotlin.math.max
 import kotlin.math.pow
 
-data class Meme(val itemID: Int, val bitmap : Bitmap , val author : String)
+
+data class Meme(val itemID: Int, val bitmap: Bitmap, val author: String)
 
 class MainActivity : AppCompatActivity() {
 
     private var uniqueID: String? = null
     private var password: String? = null
+
+    private var queue: RequestQueue? = null
+
+
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        // R.menu.mymenu is a reference to an xml file named mymenu.xml which should be inside your res/menu directory.
+        // If you don't have res/menu, just create a directory named "menu" inside res
+        menuInflater.inflate(R.menu.menu, menu)
+        return super.onCreateOptionsMenu(menu)
+    }
+
+    override fun onActivityResult(
+        requestCode: Int,
+        resultCode: Int,
+        intent: Intent?
+    ) {
+
+        if (intent?.clipData != null) {
+            val count: Int = intent.clipData!!.itemCount
+            for (i in 0 until count) {
+                val imgUri: Uri = intent.clipData!!.getItemAt(i).uri
+
+                val freq = FileRequest(Request.Method.POST, "https://tgag.app/upload", contentResolver.openInputStream(imgUri)!!, "dickman.jpg", Response.Listener { response ->
+                }, Response.ErrorListener { error ->
+                })
+
+                queue!!.add(freq)
+            }
+        } else if (intent?.data != null) {
+            val imgUri: Uri = intent.data!!
+
+            val freq = FileRequest(Request.Method.POST, "https://tgag.app/upload", contentResolver.openInputStream(imgUri)!!, "dickman.jpg", Response.Listener { response ->
+                textView2.text = response.data.toString()
+            }, Response.ErrorListener { error ->
+                textView2.text = "up eror"
+            })
+
+            queue!!.add(freq)
+        }
+
+        super.onActivityResult(requestCode, resultCode, intent)
+    }
+
+
+    override fun onOptionsItemSelected(item: MenuItem) = when (item.itemId) {
+        R.id.upload -> {
+            // User chose the "Settings" item, show the app settings UI...
+            //val myIntent = Intent(this, Upload::class.java)
+            //startActivity(myIntent)
+
+            val intent = Intent()
+            intent.type = "image/*"
+            intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
+            intent.action = Intent.ACTION_GET_CONTENT
+            startActivityForResult(Intent.createChooser(intent, "Select Picture"), 1)
+
+            true
+        }
+
+        R.id.my_memes -> {
+            // User chose the "Favorite" action, mark the current item
+            // as a favorite...
+            true
+        }
+
+        else -> {
+            // If we got here, the user's action was not recognized.
+            // Invoke the superclass to handle it.
+            super.onOptionsItemSelected(item)
+        }
+    }
+
 
     @ExperimentalStdlibApi
     @SuppressLint("ClickableViewAccessibility")
@@ -44,9 +116,12 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        setSupportActionBar(findViewById(R.id.toolbar2))
+
+
         CookieHandler.setDefault(CookieManager())
 
-        val queue = Volley.newRequestQueue(this)
+        queue = Volley.newRequestQueue(this)
 
         val t2 = findViewById<TextView>(R.id.textView2)
         val t = findViewById<TextView>(R.id.textView)
@@ -62,20 +137,20 @@ class MainActivity : AppCompatActivity() {
 
             var frontImage = findViewById<ImageView>(R.id.imageView)
             var backImage = findViewById<ImageView>(R.id.imageView2)
-            var frontMeme : Meme? = null
-            var backMeme : Meme? = null
+            var frontMeme: Meme? = null
+            var backMeme: Meme? = null
             backImage.alpha = 0f
 
             var lastx = 0f
             val defaultx = frontImage.x
             var defaulty = frontImage.y
 
-            val rate_meme = { rating : Int ->
+            val rate_meme = { rating: Int ->
                 val url = "https://tgag.app/rate_meme_app"
 
                 val jsonBody = JSONObject()
 
-                if(frontMeme != null) {
+                if (frontMeme != null) {
                     jsonBody.put("itemID", frontMeme!!.itemID)
                     jsonBody.put("rating", rating)
 
@@ -89,13 +164,13 @@ class MainActivity : AppCompatActivity() {
                             t.text = error.message
 
                         })
-                    queue.add(req)
+                    queue!!.add(req)
                 }
 
             }
 
             var counter = 0
-            val get_new_memes = { callback : () -> Unit ->
+            val get_new_memes = { callback: () -> Unit ->
                 val url = "https://tgag.app/top_urls_json"
                 counter = 0
 
@@ -109,13 +184,13 @@ class MainActivity : AppCompatActivity() {
                             val img_url = top.getJSONArray(i).getString(1)
                             val img_author = top.getJSONArray(i).getString(2)
 
-                            if (!memesdone.contains(item_id)){
+                            if (!memesdone.contains(item_id)) {
                                 counter++
                                 memesdone.add(item_id)
                                 val imReq =
                                     ImageRequest(img_url,
                                         { bitmap: Bitmap ->
-                                            memeimgs.put(item_id, Meme(item_id,bitmap,img_author))
+                                            memeimgs.put(item_id, Meme(item_id, bitmap, img_author))
                                             counter--
                                             if (counter == 0)
                                                 callback()
@@ -127,7 +202,7 @@ class MainActivity : AppCompatActivity() {
                                         { error -> t.text = error.message })
 
                                 //queue.add(jsonObjectRequest)
-                                queue.add(imReq)
+                                queue!!.add(imReq)
                             }
                         }
                     },
@@ -138,19 +213,19 @@ class MainActivity : AppCompatActivity() {
                     }
                 )
 
-                queue.add(jsonObjectRequest)
+                queue!!.add(jsonObjectRequest)
 
             }
 
-            fun pick_some_meme() : Pair<Int,Meme>? {
-                if(memeimgs.size < 5){
+            fun pick_some_meme(): Pair<Int, Meme>? {
+                if (memeimgs.size < 5) {
                     get_new_memes {}
                 }
-                for ( (key,value) in memeimgs ){
+                for ((key, value) in memeimgs) {
                     //TODO: what happens if the rating does not get trough?
                     memeimgs.remove(key)
 
-                    return Pair(key,value)
+                    return Pair(key, value)
                 }
                 return null
                 //throw Exception("trying to pick meme from empty memeimgs")
@@ -166,11 +241,10 @@ class MainActivity : AppCompatActivity() {
                 t2.bringToFront()
                 t.bringToFront()
                 author.bringToFront()
-                if(frontMeme != null){
+                if (frontMeme != null) {
                     author.text = frontMeme!!.author
                     author.visibility = View.VISIBLE
-                }
-                else{
+                } else {
                     author.visibility = View.INVISIBLE
                 }
             }
@@ -178,11 +252,10 @@ class MainActivity : AppCompatActivity() {
             val update_back_meme = {
                 val p = pick_some_meme()
 
-                if(p != null){
+                if (p != null) {
                     backImage.setImageBitmap(p.second.bitmap)
                     backMeme = p.second
-                }
-                else{
+                } else {
                     backImage.setImageResource(R.drawable.outofmemes)
                     backMeme = null
                 }
@@ -216,7 +289,7 @@ class MainActivity : AppCompatActivity() {
                         frontImage.x += dx
                         val w = window.decorView.width
                         backImage.alpha = (kotlin.math.abs(frontImage.x) / w).pow(2f)
-                        if(frontImage.x > 0f)
+                        if (frontImage.x > 0f)
                             ratingvisual.setImageResource(R.drawable.herz)
                         else
                             ratingvisual.setImageResource(R.drawable.herzbroke)
@@ -251,10 +324,13 @@ class MainActivity : AppCompatActivity() {
                             //Log.d("", "X velocity: ${getXVelocity(pointerId)}")
                             //Log.d("", "Y velocity: ${getYVelocity(pointerId)}")
 
+                            /*
                             if (xvel > 100)
                                 t2.text = "like"
                             else if(xvel < -100)
                                 t2.text = "dislike"
+
+                             */
                         }
 
                         mVelocityTracker?.recycle()
@@ -266,7 +342,7 @@ class MainActivity : AppCompatActivity() {
                         ratingvisual.alpha = 0f
 
                         if (t2.text == "like" || t2.text == "dislike") {
-                            if(frontMeme != null){
+                            if (frontMeme != null) {
                                 if (t2.text == "like")
                                     rate_meme(2)
                                 else
@@ -329,7 +405,7 @@ class MainActivity : AppCompatActivity() {
                 }
             )
 
-            queue.add(jsonObjectRequest)
+            queue!!.add(jsonObjectRequest)
 
         } else {
             password = pref.getString("pw", null)
@@ -352,7 +428,7 @@ class MainActivity : AppCompatActivity() {
 
                 }
             )
-            queue.add(jsonObjectRequest)
+            queue!!.add(jsonObjectRequest)
 
         }
 
