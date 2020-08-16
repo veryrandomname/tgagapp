@@ -1,6 +1,7 @@
 package com.tgag.tgag
 
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
@@ -27,34 +28,15 @@ class Register : AppCompatActivity() {
 
         val button: Button = findViewById(R.id.register_button)
         button.setOnClickListener {
-            // Do something in response to button click
 
-            val url = "$baseurl/merge_app_user"
-            val jsonBody = JSONObject()
-
-            //val pref = getPreferences(Context.MODE_PRIVATE)
-            //jsonBody.put("old_username", pref.getString("id", null))
-            jsonBody.put("old_username", intent.getStringExtra("old_username"))
-            jsonBody.put("username", username_input.text)
-            jsonBody.put("password", password_input.text)
-
-            val jsonObjectRequest = JsonObjectRequest(
-                Request.Method.POST, url, jsonBody,
+            Client.merge_user(applicationContext, username_input.text.toString(), password_input.text.toString(),
                 Response.Listener { response ->
-                    val resultIntent = Intent()
-                    resultIntent.putExtra("new_id", username_input.text)
-                    resultIntent.putExtra("new_pw", password_input.text)
-                    setResult(Activity.RESULT_OK, resultIntent)
                     finish()
                 },
                 Response.ErrorListener { error ->
-                    // TODO: Handle error
                     textView3.text = "Username taken"
                     textView3.setTextColor(Color.RED)
-                }
-            )
-
-            Client.getQueue(applicationContext).add(jsonObjectRequest)
+                })
         }
 
     }

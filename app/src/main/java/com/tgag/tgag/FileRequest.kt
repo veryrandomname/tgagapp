@@ -8,14 +8,13 @@ import com.android.volley.toolbox.HttpHeaderParser
 import java.io.ByteArrayOutputStream
 import java.io.DataOutputStream
 import java.io.InputStream
-import java.nio.file.Files
 
 
 class FileRequest(
     method: Int,
     url: String,
-    private val stream : InputStream,
-    private val fileName : String,
+    private val stream: InputStream,
+    private val fileName: String,
     private val listener: Response.Listener<NetworkResponse>,
     errorListener: Response.ErrorListener
 ) : Request<NetworkResponse>(method, url, errorListener) {
@@ -24,7 +23,7 @@ class FileRequest(
     private val mimeType = "multipart/form-data;boundary=$boundary"
 
     // Create multi part byte array
-    private val multipartBody : ByteArray = {
+    private val multipartBody: ByteArray = {
         val bos = ByteArrayOutputStream()
 
         val dos = DataOutputStream(bos)
