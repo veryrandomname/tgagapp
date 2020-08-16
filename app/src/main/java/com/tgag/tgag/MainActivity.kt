@@ -1,13 +1,12 @@
 package com.tgag.tgag
 
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
-import android.database.Cursor
 import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Bundle
-import android.provider.MediaStore
 import android.util.Base64
 import android.view.*
 import android.webkit.MimeTypeMap
@@ -20,10 +19,9 @@ import com.android.volley.Response
 import com.android.volley.toolbox.ImageRequest
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
+import com.tgag.tgag.Client.login
 import kotlinx.android.synthetic.main.activity_main.*
 import org.json.JSONObject
-import java.io.File
-import java.io.InputStream
 import java.net.CookieHandler
 import java.net.CookieManager
 import java.security.SecureRandom
@@ -35,37 +33,36 @@ import kotlin.math.pow
 
 data class Meme(val itemID: Int, val bitmap: Bitmap, val author: String)
 
-object SingletonQueue {
-    private var queue : RequestQueue? = null
-
-    fun getQueue( ctx : Context) : RequestQueue{
-        if(queue == null)
-            queue = Volley.newRequestQueue(ctx)
-
-        return queue!!
-    }
-}
 
 class MainActivity : AppCompatActivity() {
 
     private var uniqueID: String? = null
     private var password: String? = null
+    //private val baseurl: String = "https://tgag.app"
+    private val baseurl: String = "http://192.168.1.116:5000"
+
+    private var registered = false
+
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
         // R.menu.mymenu is a reference to an xml file named mymenu.xml which should be inside your res/menu directory.
         // If you don't have res/menu, just create a directory named "menu" inside res
-        menuInflater.inflate(R.menu.menu, menu)
+        if(registered)
+            menuInflater.inflate(R.menu.menu, menu)
+        else
+            menuInflater.inflate(R.menu.unregistered_menu, menu)
+
         return super.onCreateOptionsMenu(menu)
     }
 
     private fun fileUpload(imgUri: Uri){
         val filetype = MimeTypeMap.getSingleton().getExtensionFromMimeType(contentResolver.getType(imgUri))
 
-        val freq = FileRequest(Request.Method.POST, "https://tgag.app/upload", contentResolver.openInputStream(imgUri)!!, "androidupload.$filetype", Response.Listener { response ->
+        val freq = FileRequest(Request.Method.POST, "$baseurl/upload", contentResolver.openInputStream(imgUri)!!, "androidupload.$filetype", Response.Listener { response ->
         }, Response.ErrorListener { error ->
         })
 
-        SingletonQueue.getQueue(applicationContext).add(freq)
+        Client.getQueue(applicationContext).add(freq)
     }
 
     override fun onActivityResult(
@@ -73,15 +70,29 @@ class MainActivity : AppCompatActivity() {
         resultCode: Int,
         intent: Intent?
     ) {
-        if (intent?.clipData != null) {
-            val count: Int = intent.clipData!!.itemCount
-            for (i in 0 until count) {
-                val imgUri: Uri = intent.clipData!!.getItemAt(i).uri
+        if(requestCode == 1){ //upload
+            if (intent?.clipData != null) {
+                val count: Int = intent.clipData!!.itemCount
+                for (i in 0 until count) {
+                    val imgUri: Uri = intent.clipData!!.getItemAt(i).uri
+                    fileUpload(imgUri)
+                }
+            } else if (intent?.data != null) {
+                val imgUri: Uri = intent.data!!
                 fileUpload(imgUri)
             }
-        } else if (intent?.data != null) {
-            val imgUri: Uri = intent.data!!
-            fileUpload(imgUri)
+        }
+        else if (requestCode == 2){ //register
+            if(resultCode == Activity.RESULT_OK){
+                val pref = getPreferences(Context.MODE_PRIVATE)
+                val editor = pref.edit()
+                uniqueID = intent!!.getStringExtra("new_id")
+                password = intent.getStringExtra("new_pw")
+                editor.putString("id", uniqueID)
+                editor.putString("pw", password)
+                editor.putBoolean("registered", true)
+                editor.apply()
+            }
         }
 
         super.onActivityResult(requestCode, resultCode, intent)
@@ -107,6 +118,15 @@ class MainActivity : AppCompatActivity() {
             // User chose the "Favorite" action, mark the current item
             // as a favorite...
 
+            true
+        }
+
+        R.id.register -> {
+            // User chose the "Favorite" action, mark the current item
+            // as a favorite...
+            val intent = Intent(this, Register::class.java)
+            intent.putExtra("old_username", uniqueID)
+            startActivityForResult(intent, 2)
             true
         }
 
@@ -152,7 +172,7 @@ class MainActivity : AppCompatActivity() {
             var defaulty = frontImage.y
 
             val rate_meme = { rating: Int ->
-                val url = "https://tgag.app/rate_meme_app"
+                val url = "$baseurl/rate_meme_app"
 
                 val jsonBody = JSONObject()
 
@@ -170,14 +190,14 @@ class MainActivity : AppCompatActivity() {
                             t.text = error.message
 
                         })
-                    SingletonQueue.getQueue(applicationContext).add(req)
+                    Client.getQueue(applicationContext).add(req)
                 }
 
             }
 
             var counter = 0
             val get_new_memes = { callback: () -> Unit ->
-                val url = "https://tgag.app/top_urls_json"
+                val url = "$baseurl/top_urls_json"
                 counter = 0
 
                 val jsonObjectRequest = JsonObjectRequest(
@@ -208,7 +228,7 @@ class MainActivity : AppCompatActivity() {
                                         { error -> t.text = error.message })
 
                                 //queue.add(jsonObjectRequest)
-                                SingletonQueue.getQueue(applicationContext).add(imReq)
+                                Client.getQueue(applicationContext).add(imReq)
                             }
                         }
                     },
@@ -219,7 +239,7 @@ class MainActivity : AppCompatActivity() {
                     }
                 )
 
-                SingletonQueue.getQueue(applicationContext).add(jsonObjectRequest)
+                Client.getQueue(applicationContext).add(jsonObjectRequest)
 
             }
 
@@ -274,7 +294,6 @@ class MainActivity : AppCompatActivity() {
                 update_back_meme()
             }
 
-            var mVelocityTracker: VelocityTracker? = null
 
 
             frontImage.setOnTouchListener { v, event ->
@@ -283,9 +302,6 @@ class MainActivity : AppCompatActivity() {
                         frontImage.animate().cancel()
                         lastx = event.rawX
 
-                        mVelocityTracker?.clear()
-                        mVelocityTracker = mVelocityTracker ?: VelocityTracker.obtain()
-                        mVelocityTracker?.addMovement(event)
 
                         true
                     }
@@ -311,36 +327,10 @@ class MainActivity : AppCompatActivity() {
                             t2.text = ""
                             ratingvisual.alpha = 0f
                         }
-                        mVelocityTracker?.addMovement(event)
 
                         true
                     }
                     MotionEvent.ACTION_UP -> {
-
-                        mVelocityTracker?.apply {
-                            val pointerId: Int = event.getPointerId(event.actionIndex)
-                            addMovement(event)
-                            // When you want to determine the velocity, call
-                            // computeCurrentVelocity(). Then call getXVelocity()
-                            // and getYVelocity() to retrieve the velocity for each pointer ID.
-                            computeCurrentVelocity(1000)
-                            // Log velocity of pixels per second
-                            // Best practice to use VelocityTrackerCompat where possible.
-                            val xvel = getXVelocity(pointerId)
-                            //Log.d("", "X velocity: ${getXVelocity(pointerId)}")
-                            //Log.d("", "Y velocity: ${getYVelocity(pointerId)}")
-
-                            /*
-                            if (xvel > 100)
-                                t2.text = "like"
-                            else if(xvel < -100)
-                                t2.text = "dislike"
-
-                             */
-                        }
-
-                        mVelocityTracker?.recycle()
-                        mVelocityTracker = null
 
                         //img.x = defaultx
                         frontImage.animate().x(defaultx)
@@ -389,7 +379,7 @@ class MainActivity : AppCompatActivity() {
             password = x.dropLast(1)
 
 
-            val url = "https://tgag.app/new_app_user"
+            val url = "$baseurl/new_app_user"
             val jsonBody = JSONObject()
 
             jsonBody.put("username", uniqueID)
@@ -411,12 +401,14 @@ class MainActivity : AppCompatActivity() {
                 }
             )
 
-            SingletonQueue.getQueue(applicationContext).add(jsonObjectRequest)
+            Client.getQueue(applicationContext).add(jsonObjectRequest)
 
         } else {
+            //login(applicationContext, pref, Response.Listener { response -> setup() })
             password = pref.getString("pw", null)
+            registered = pref.getBoolean("registered", false)
 
-            val url = "https://tgag.app/login_app"
+            val url = "$baseurl/login_app"
             val jsonBody = JSONObject()
 
             jsonBody.put("username", uniqueID)
@@ -426,6 +418,7 @@ class MainActivity : AppCompatActivity() {
                 Request.Method.POST, url, jsonBody,
                 Response.Listener { response ->
                     t.text = "Response: %s".format(response.toString())
+
                     setup()
                 },
                 Response.ErrorListener { error ->
@@ -434,7 +427,7 @@ class MainActivity : AppCompatActivity() {
 
                 }
             )
-            SingletonQueue.getQueue(applicationContext).add(jsonObjectRequest)
+            Client.getQueue(applicationContext).add(jsonObjectRequest)
 
         }
 
