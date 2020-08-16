@@ -101,7 +101,8 @@ class MainActivity : AppCompatActivity() {
         R.id.my_memes -> {
             // User chose the "Favorite" action, mark the current item
             // as a favorite...
-
+            val intent = Intent(this, MyUploads::class.java)
+            startActivity(intent)
             true
         }
 

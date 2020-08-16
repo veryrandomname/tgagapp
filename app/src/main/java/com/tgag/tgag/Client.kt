@@ -2,12 +2,20 @@ package com.tgag.tgag
 
 import android.app.Activity
 import android.content.Context
+import android.content.Context.LAYOUT_INFLATER_SERVICE
 import android.content.Intent
 import android.content.SharedPreferences
 import android.graphics.Bitmap
 import android.graphics.Color
 import android.util.Base64
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.view.ViewGroup.LayoutParams.*
 import android.widget.ImageView
+import android.widget.LinearLayout
+import android.widget.TextView
+import androidx.core.view.get
 import com.android.volley.Request
 import com.android.volley.RequestQueue
 import com.android.volley.Response
@@ -162,6 +170,68 @@ object Client {
         Client.getQueue(ctx).add(jsonObjectRequest)
 
     }
+
+    private fun create_image(ctx: Context, container: LinearLayout, bitmap: Bitmap, likes : Int, dislikes : Int){
+        val imgView = ImageView(ctx)
+        imgView.setImageBitmap(bitmap)
+        container.addView(imgView, MATCH_PARENT, 1000)
+        val likesView = TextView(ctx)
+        val dislikesView = TextView(ctx)
+        likesView.text = "likes: $likes"
+        dislikesView.text = "dislikes: $dislikes"
+        likesView.textSize = 24f
+        dislikesView.textSize = 24f
+        container.addView(likesView)
+        container.addView(dislikesView)
+    }
+
+    var my_upload_cache = HashMap<Int, Meme>()
+
+    fun display_my_uploads(ctx: Context, container : LinearLayout) {
+        val url = "$baseurl/my_uploads_app"
+
+        val jsonObjectRequest = JsonObjectRequest(
+            Request.Method.GET, url, null,
+            Response.Listener { response ->
+                //t.text = "Response: %s".format(response.toString())
+                val top = response.getJSONArray("my_uploads")
+                for (i in 0 until top.length()) {
+                    val obj = top.getJSONObject(i)
+
+                    val item_id = obj.getInt("itemID")
+                    val img_url = obj.getString("url")
+                    val rating = obj.getJSONArray("rating")
+                    val dislikes = rating.getInt(0)
+                    val likes = rating.getInt(1)
+                    if(!my_upload_cache.containsKey(item_id)) {
+                        val imReq =
+                            ImageRequest(img_url,
+                                { bitmap: Bitmap ->
+                                    my_upload_cache[item_id] = Meme(item_id, bitmap, "you")
+                                    create_image(ctx, container, bitmap, likes, dislikes)
+                                },
+                                1000,
+                                1000,
+                                ImageView.ScaleType.MATRIX,
+                                Bitmap.Config.RGB_565,
+                                { _ -> })
+
+                        getQueue(ctx).add(imReq)
+                    }
+                    else {
+                        create_image(ctx, container, my_upload_cache[item_id]!!.bitmap, likes, dislikes)
+                    }
+                }
+            },
+            Response.ErrorListener { error ->
+            }
+        )
+
+        Client.getQueue(ctx).add(jsonObjectRequest)
+
+    }
+
+
 
     fun rate_meme(ctx: Context, meme: Meme, rating: Int) {
         val url = "$baseurl/rate_meme_app"
