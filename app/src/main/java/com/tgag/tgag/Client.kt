@@ -7,6 +7,7 @@ import android.view.ViewGroup.LayoutParams.*
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
+import android.widget.VideoView
 import com.android.volley.Request
 import com.android.volley.RequestQueue
 import com.android.volley.Response
@@ -25,15 +26,38 @@ open class Meme(val itemID: Int, val author: String)
 class ImageMeme(itemID: Int, val bitmap: Bitmap, author: String) : Meme(itemID,author)
 class VideoMeme (itemID: Int, val file: File, author: String) : Meme(itemID,author)
 
+class MemeInfo(private val obj : JSONObject){
+    val item_id = obj.getInt("itemID")
+    val url = obj.getString("url")
+    val thumbnail_url = obj.getString("thumbnail_url")
+    val author = obj.getString("author")
+    val filename = obj.getString("filename")
+    val file_extension = obj.getString("file_extension")
+    val type = obj.getString("type")
+    fun dislikes() : Int {
+        return obj.getJSONArray("rating").getInt(0)
+    }
+    fun likes() : Int {
+        return obj.getJSONArray("rating").getInt(1)
+    }
+}
 
 object Client {
     private var queue: RequestQueue? = null
     var uniqueID: String? = null
     var password: String? = null
     var registered: Boolean = false
+    val k = BuildConfig.DEBUG
 
-    // val baseurl: String = "https://tgag.app"
-    val baseurl: String = "http://192.168.1.116:5000"
+/*
+    private val baseurl : String = if (com.tgag.tgag.BuildConfig.DEBUG) {
+            "http://192.168.1.116:5000"
+        } else{
+            "https://tgag.app"
+        }
+*/
+
+    val baseurl: String = "https://tgag.app"
 
     private fun getQueue(ctx: Context): RequestQueue {
         if (queue == null)
@@ -122,13 +146,62 @@ object Client {
         Client.getQueue(ctx).add(jsonObjectRequest)
     }
 
-    private var counter = 0
     var memeimgs = HashMap<Int, Meme>()
-    var memesdone = HashSet<Int>()
+    private var memesdone = HashSet<Int>()
 
-    fun get_new_memes(ctx: Context, scale_type: ImageView.ScaleType, callback: () -> Unit) {
+    private fun get_meme_remote(ctx: Context, m: MemeInfo, thumbnail : Boolean, callback: (Meme) -> Unit) {
+        val url = if(!thumbnail) m.url else m.thumbnail_url
+        if (m.type == "image" || thumbnail) {
+            val imReq =
+                ImageRequest(url,
+                    { bitmap: Bitmap ->
+                        callback(ImageMeme(m.item_id, bitmap, m.author))
+                    },
+                    1000,
+                    1000,
+                    ImageView.ScaleType.FIT_CENTER,
+                    Bitmap.Config.RGB_565,
+                    { _ -> })
+
+            getQueue(ctx).add(imReq)
+
+        } else if (m.type == "video" && !thumbnail) {
+            var tmp = File(ctx.cacheDir, m.filename)
+            if (!tmp.exists()) {
+
+                val fileReq =
+                    FileRequest(m.url,
+                        Response.Listener { bytes: ByteArray ->
+                            tmp = createTempFile(m.filename, null, ctx.cacheDir)
+                            tmp.writeBytes(bytes)
+                            callback(VideoMeme(m.item_id, tmp, m.author))
+                        },
+                        Response.ErrorListener { _ -> })
+
+                getQueue(ctx).add(fileReq)
+            } else {
+                callback(VideoMeme(m.item_id, tmp, m.author))
+            }
+        }
+    }
+
+
+    private fun put_remote_meme_in_pool(ctx: Context, m : MemeInfo, callback: () -> Unit){
+        if (!memesdone.contains(m.item_id)) {
+            memesdone.add(m.item_id)
+
+            get_meme_remote(ctx,m, false) { meme ->
+                memeimgs[meme.itemID] = meme
+                callback()
+            }
+        }
+    }
+
+
+    fun get_new_memes(ctx: Context, callback: () -> Unit) {
         val url = "$baseurl/top_urls_json"
-        counter = 0
+
+        var once = false
 
         val jsonObjectRequest = JsonObjectRequest(
             Request.Method.GET, url, null,
@@ -137,76 +210,18 @@ object Client {
                 val top = response.getJSONArray("top_rec")
                 for (i in 0 until top.length()) {
                     val obj = top.getJSONObject(i)
-                    val item_id = obj.getInt("itemID")
-                    val url = obj.getString("url")
-                    val author = obj.getString("author")
-                    val filename = obj.getString("filename")
-                    val file_extension = obj.getString("file_extension")
-                    val type = obj.getString("type")
-
-                    if (!memesdone.contains(item_id)) {
-                        counter++
-                        memesdone.add(item_id)
-
-                        if (type == "image") {
-                            val imReq =
-                                ImageRequest(url,
-                                    { bitmap: Bitmap ->
-                                        memeimgs.put(
-                                            item_id,
-                                            ImageMeme(item_id, bitmap, author)
-                                        )
-                                        counter--
-                                        if (counter == 0)
-                                            callback()
-                                    },
-                                    1000,
-                                    1000,
-                                    scale_type,
-                                    Bitmap.Config.RGB_565,
-                                    { _ -> })
-
-                            getQueue(ctx).add(imReq)
-
-                        } else if (type == "video") {
-                            var tmp = File(ctx.cacheDir, filename)
-                            if(!tmp.exists()) {
-
-                                val fileReq =
-                                    FileRequest(url,
-                                        Response.Listener { bytes: ByteArray ->
-                                            tmp = createTempFile(filename, null, ctx.cacheDir)
-                                            tmp.writeBytes(bytes)
-
-                                            memeimgs.put(
-                                                item_id,
-                                                VideoMeme(item_id, tmp, author)
-                                            )
-                                            counter--
-                                            if (counter == 0)
-                                                callback()
-                                        },
-                                        Response.ErrorListener { _ -> })
-
-                                getQueue(ctx).add(fileReq)
-                            }
-                            else {
-                                memeimgs.put(
-                                    item_id,
-                                    VideoMeme(item_id, tmp, author)
-                                )
-                            }
+                    put_remote_meme_in_pool(ctx, MemeInfo(obj)) {
+                        if (!once){
+                            once = true
+                            callback()
                         }
                     }
-
                 }
             },
             { error ->
             }
         )
-
         Client.getQueue(ctx).add(jsonObjectRequest)
-
     }
 
     private fun create_image(ctx: Context, container: LinearLayout, bitmap: Bitmap, likes : Int, dislikes : Int){
@@ -235,32 +250,27 @@ object Client {
                 val top = response.getJSONArray("my_uploads")
                 for (i in 0 until top.length()) {
                     val obj = top.getJSONObject(i)
-
-                    val item_id = obj.getInt("itemID")
-                    val img_url = obj.getString("url")
                     val rating = obj.getJSONArray("rating")
                     val dislikes = rating.getInt(0)
                     val likes = rating.getInt(1)
-                    if(!my_upload_cache.containsKey(item_id)) {
-                        val imReq =
-                            ImageRequest(img_url,
-                                { bitmap: Bitmap ->
-                                    my_upload_cache[item_id] = ImageMeme(item_id, bitmap, "you")
-                                    create_image(ctx, container, bitmap, likes, dislikes)
-                                },
-                                1000,
-                                1000,
-                                ImageView.ScaleType.MATRIX,
-                                Bitmap.Config.RGB_565,
-                                { _ -> })
+                    val m = MemeInfo(obj)
 
-                        getQueue(ctx).add(imReq)
+                    if(!my_upload_cache.containsKey(m.item_id)) {
+                        get_meme_remote(ctx, m, true) { meme ->
+                            if(meme is ImageMeme) {
+                                val img = meme as ImageMeme
+                                my_upload_cache[img.itemID] = img
+                                create_image(ctx, container, img.bitmap, likes, dislikes)
+                            }
+
+                        }
                     }
                     else {
-                        val m = my_upload_cache[item_id]
-                        if(m is ImageMeme){
-                            create_image(ctx, container,m.bitmap, likes, dislikes)
+                        val meme = my_upload_cache[m.item_id]
+                        if(meme is ImageMeme){
+                            create_image(ctx, container,meme.bitmap, likes, dislikes)
                         }
+
                     }
                 }
             },

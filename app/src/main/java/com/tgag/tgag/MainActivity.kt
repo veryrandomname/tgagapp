@@ -211,7 +211,7 @@ class MainActivity : AppCompatActivity() {
 
             fun pick_some_meme(): Pair<Int, Meme>? {
                 if (Client.memeimgs.size < 5) {
-                    Client.get_new_memes(applicationContext, imageView.scaleType) {}
+                    Client.get_new_memes(applicationContext) {}
                 }
                 for ((key, value) in Client.memeimgs) {
 //TODO: what happens if the rating does not get trough?
@@ -253,7 +253,7 @@ class MainActivity : AppCompatActivity() {
 
             }
 
-            Client.get_new_memes(applicationContext, imageView.scaleType) {
+            Client.get_new_memes(applicationContext) {
                 update_meme()
             }
 
@@ -267,16 +267,18 @@ class MainActivity : AppCompatActivity() {
 
                 override fun onSingleTapUp(p0: MotionEvent?): Boolean {
 //TODO("Not yet implemented")
-                    if (volume)
-                        mediaplayer!!.setVolume(0f, 0f)
-                    else
-                        mediaplayer!!.setVolume(1f, 1f)
-                    volume = !volume
+                    if(mediaplayer != null){
+                        if (volume)
+                            mediaplayer!!.setVolume(0f, 0f)
+                        else
+                            mediaplayer!!.setVolume(1f, 1f)
+                        volume = !volume
 
-                    val pref = getSharedPreferences("main",Context.MODE_PRIVATE)
-                    val editor = pref.edit()
-                    editor.putBoolean("volume",volume)
-                    editor.apply()
+                        val pref = getSharedPreferences("main",Context.MODE_PRIVATE)
+                        val editor = pref.edit()
+                        editor.putBoolean("volume",volume)
+                        editor.apply()
+                    }
 
                     return true
                 }
