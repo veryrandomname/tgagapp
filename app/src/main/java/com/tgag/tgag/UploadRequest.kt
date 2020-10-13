@@ -14,6 +14,8 @@ class UploadRequest(
     url: String,
     private val stream: InputStream,
     private val fileName: String,
+    private val title: String,
+    private val show_username: Boolean,
     private val listener: Response.Listener<NetworkResponse>,
     errorListener: Response.ErrorListener
 ) : Request<NetworkResponse>(Request.Method.POST, url, errorListener) {

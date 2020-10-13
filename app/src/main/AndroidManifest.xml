@@ -12,6 +12,13 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
         android:usesCleartextTraffic="true">
+        <activity android:name=".Upload"
+            android:parentActivityName=".MainActivity"
+            >
+
+        </activity>
+        <activity android:name=".NoLocalAccount" />
+        <activity android:name=".Login" />
         <activity
             android:name=".MyUploads"
             android:label="@string/title_activity_my_uploads"
@@ -24,13 +31,7 @@
                 android:value="com.tgag.tgag.MainActivity" />
         </activity>
         <activity
-            android:name=".Register"
-            android:parentActivityName=".MainActivity">
-
-            <!-- Parent activity meta-data to support 4.0 and lower -->
-            <meta-data
-                android:name="android.support.PARENT_ACTIVITY"
-                android:value="com.tgag.tgag.MainActivity" />
+            android:name=".Register">
         </activity>
         <activity android:name=".MainActivity">
             <intent-filter>

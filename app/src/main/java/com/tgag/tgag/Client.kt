@@ -7,12 +7,12 @@ import android.view.ViewGroup.LayoutParams.*
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
-import android.widget.VideoView
 import com.android.volley.Request
 import com.android.volley.RequestQueue
 import com.android.volley.Response
 import com.android.volley.toolbox.ImageRequest
 import com.android.volley.toolbox.JsonObjectRequest
+import com.android.volley.toolbox.StringRequest
 import com.android.volley.toolbox.Volley
 import org.json.JSONObject
 import java.io.File
@@ -22,12 +22,13 @@ import java.net.CookieManager
 import java.security.SecureRandom
 import java.util.*
 
-open class Meme(val itemID: Int, val author: String)
-class ImageMeme(itemID: Int, val bitmap: Bitmap, author: String) : Meme(itemID,author)
-class VideoMeme (itemID: Int, val file: File, author: String) : Meme(itemID,author)
+open class Meme(val itemID: Int, val author: String, val title : String)
+class ImageMeme(itemID: Int, val bitmap: Bitmap, author: String, title: String) : Meme(itemID,author, title)
+class VideoMeme (itemID: Int, val file: File, author: String, title: String) : Meme(itemID,author,title)
 
 class MemeInfo(private val obj : JSONObject){
     val item_id = obj.getInt("itemID")
+    val title = obj.getString("title")
     val url = obj.getString("url")
     val thumbnail_url = obj.getString("thumbnail_url")
     val author = obj.getString("author")
@@ -48,16 +49,9 @@ object Client {
     var password: String? = null
     var registered: Boolean = false
     val k = BuildConfig.DEBUG
-
-/*
-    private val baseurl : String = if (com.tgag.tgag.BuildConfig.DEBUG) {
-            "http://192.168.1.116:5000"
-        } else{
-            "https://tgag.app"
-        }
-*/
-
-    val baseurl: String = "https://tgag.app"
+    
+    val baseurl: String = "http://192.168.1.116:5000"
+    //val baseurl: String = "https://tgag.app"
 
     private fun getQueue(ctx: Context): RequestQueue {
         if (queue == null)
@@ -70,32 +64,48 @@ object Client {
         getQueue(ctx).add(req)
     }
 
-    fun login(ctx: Context, listener: Response.Listener<JSONObject>) {
-        val pref = ctx.getSharedPreferences("client",Context.MODE_PRIVATE)
-        uniqueID = pref.getString("id", null)
-        password = pref.getString("pw", null)
-        registered = pref.getBoolean("registered", false)
+    fun logout(ctx: Context){
+        val url = "$baseurl/logout"
 
+        val req = StringRequest(
+            Request.Method.POST, url,
+            {_ -> },
+            {_ ->}
+        )
+        Client.getQueue(ctx).add(req)
+    }
+
+    fun login(ctx: Context, username : String, password : String, listener: Response.Listener<JSONObject>, error_listener: Response.ErrorListener){
         val url = "$baseurl/login_app"
         val jsonBody = JSONObject()
 
-        jsonBody.put("username", uniqueID)
+        jsonBody.put("username", username)
         jsonBody.put("password", password)
 
         val jsonObjectRequest = JsonObjectRequest(
             Request.Method.POST, url, jsonBody,
             listener,
-            Response.ErrorListener { error ->
-            }
+            error_listener
         )
         Client.getQueue(ctx).add(jsonObjectRequest)
     }
 
-    fun file_upload(ctx: Context, filestream: InputStream, filetype: String) {
+    fun login_saved(ctx: Context, listener: Response.Listener<JSONObject>) {
+        val pref = ctx.getSharedPreferences("client",Context.MODE_PRIVATE)
+        uniqueID = pref.getString("id", null)
+        password = pref.getString("pw", null)
+        registered = pref.getBoolean("registered", false)
+
+        login(ctx, uniqueID!!, password!!, listener, Response.ErrorListener{_ ->})
+    }
+
+    fun file_upload(ctx: Context, filestream: InputStream, filetype: String, title: String, show_username : Boolean) {
         val freq = UploadRequest(
             "$baseurl/upload",
             filestream,
             "androidupload.$filetype",
+            title,
+            show_username,
             Response.Listener { response ->
             },
             Response.ErrorListener { error ->
@@ -135,6 +145,7 @@ object Client {
                 editor.putString("id", uniqueID)
                 editor.putString("pw", password)
                 editor.putBoolean("registered", false)
+                editor.putBoolean("not_first_start", true)
                 editor.apply()
 
                 listener.onResponse(response)
@@ -155,7 +166,7 @@ object Client {
             val imReq =
                 ImageRequest(url,
                     { bitmap: Bitmap ->
-                        callback(ImageMeme(m.item_id, bitmap, m.author))
+                        callback(ImageMeme(m.item_id, bitmap, m.author, m.title))
                     },
                     1000,
                     1000,
@@ -174,13 +185,13 @@ object Client {
                         Response.Listener { bytes: ByteArray ->
                             tmp = createTempFile(m.filename, null, ctx.cacheDir)
                             tmp.writeBytes(bytes)
-                            callback(VideoMeme(m.item_id, tmp, m.author))
+                            callback(VideoMeme(m.item_id, tmp, m.author, m.title))
                         },
                         Response.ErrorListener { _ -> })
 
                 getQueue(ctx).add(fileReq)
             } else {
-                callback(VideoMeme(m.item_id, tmp, m.author))
+                callback(VideoMeme(m.item_id, tmp, m.author, m.title))
             }
         }
     }
@@ -304,6 +315,29 @@ object Client {
 
     }
 
+    fun hasLocalLogin(ctx: Context) : Boolean {
+        val pref = ctx.getSharedPreferences("client",Context.MODE_PRIVATE)
+        return pref.contains("id")
+    }
+
+    fun deleteLocalLogin(ctx: Context){
+        val pref = ctx.getSharedPreferences("client",Context.MODE_PRIVATE)
+        val editor  = pref.edit()
+        editor.remove("id")
+        editor.remove("pw")
+        editor.remove("registered")
+        editor.apply()
+    }
+
+    fun setLocalLogin(ctx: Context, username: String, password: String, registered : Boolean){
+        val pref = ctx.getSharedPreferences("client",Context.MODE_PRIVATE)
+        val editor  = pref.edit()
+        editor.putString("id", username)
+        editor.putString("pw", password)
+        editor.putBoolean("registered", registered)
+        editor.apply()
+    }
+
     fun connect(ctx: Context, setup: () -> Unit) {
         CookieHandler.setDefault(CookieManager())
 
@@ -315,24 +349,31 @@ object Client {
                 setup()
             })
         } else {
-            login(ctx, Response.Listener { response -> setup() })
+            login_saved(ctx, Response.Listener { response -> setup() })
         }
 
     }
 
-    fun merge_user(ctx: Context, new_username : String, new_password : String, listener: Response.Listener<JSONObject>,
-                   error_listener : Response.ErrorListener){
+    fun register(ctx: Context, new_username : String, new_password : String, listener: Response.Listener<JSONObject>,
+                 error_listener : Response.ErrorListener){
 
         val pref = ctx.getSharedPreferences("client",Context.MODE_PRIVATE)
 
-        val url = "$baseurl/merge_app_user"
         val jsonBody = JSONObject()
 
         //val pref = getPreferences(Context.MODE_PRIVATE)
         //jsonBody.put("old_username", pref.getString("id", null))
-        jsonBody.put("old_username", uniqueID)
         jsonBody.put("username", new_username)
         jsonBody.put("password", new_password)
+
+        val url = if (pref.contains("username")){
+            jsonBody.put("old_username", uniqueID)
+            "$baseurl/merge_app_user"
+        }
+        else{
+            "$baseurl/new_app_user"
+        }
+
 
         val jsonObjectRequest = JsonObjectRequest(
             Request.Method.POST, url, jsonBody,

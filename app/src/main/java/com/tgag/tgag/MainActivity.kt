@@ -41,17 +41,6 @@ class MainActivity : AppCompatActivity() {
         return super.onPrepareOptionsMenu(menu)
     }
 
-    private fun fileUpload(imgUri: Uri) {
-        val filetype =
-            MimeTypeMap.getSingleton().getExtensionFromMimeType(contentResolver.getType(imgUri))
-
-
-        Client.file_upload(
-            applicationContext,
-            contentResolver.openInputStream(imgUri)!!,
-            filetype!!
-        )
-    }
 /*
     private fun upload(uri: Uri) {
         val filetype =
@@ -96,14 +85,19 @@ class MainActivity : AppCompatActivity() {
     ) {
         if (requestCode == 1) { //upload
             if (intent?.clipData != null) {
+                /* Disable multiple uploads for now
                 val count: Int = intent.clipData!!.itemCount
                 for (i in 0 until count) {
                     val imgUri: Uri = intent.clipData!!.getItemAt(i).uri
                     fileUpload(imgUri)
                 }
+                */
+
             } else if (intent?.data != null) {
+                val new_intent = Intent(this, Upload::class.java)
                 val imgUri: Uri = intent.data!!
-                fileUpload(imgUri)
+                new_intent.putExtra("imguri", imgUri)
+                startActivity(new_intent)
             }
         } else if (requestCode == 2) { //register
             if (resultCode == Activity.RESULT_OK) {
@@ -141,19 +135,29 @@ class MainActivity : AppCompatActivity() {
         }
 
         R.id.my_memes -> {
-// User chose the "Favorite" action, mark the current item
-// as a favorite...
             val intent = Intent(this, MyUploads::class.java)
             startActivity(intent)
             true
         }
 
         R.id.register -> {
-// User chose the "Favorite" action, mark the current item
-// as a favorite...
             val intent = Intent(this, Register::class.java)
             intent.putExtra("old_username", Client.uniqueID)
             startActivityForResult(intent, 2)
+            true
+        }
+
+        R.id.login -> {
+            startActivity(Intent(this, Login::class.java))
+            true
+        }
+
+        R.id.logout -> {
+            Client.deleteLocalLogin(applicationContext)
+            val intent = Intent(this, NoLocalAccount::class.java)
+            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            startActivity(intent)
+            finish()
             true
         }
 
@@ -244,11 +248,15 @@ class MainActivity : AppCompatActivity() {
                 memeView().visibility = View.VISIBLE
                 memeView().bringToFront()
                 author.bringToFront()
+                meme_title.bringToFront()
                 if (m != null) {
                     author.text = meme!!.author
                     author.visibility = View.VISIBLE
+                    meme_title.text = meme!!.title
+                    meme_title.visibility = View.VISIBLE
                 } else {
                     author.visibility = View.INVISIBLE
+                    meme_title.visibility = View.INVISIBLE
                 }
 
             }
@@ -369,7 +377,14 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        Client.connect(applicationContext, setup)
+        if(Client.hasLocalLogin(applicationContext) || !getSharedPreferences("client",Context.MODE_PRIVATE).getBoolean("not_first_start", false))
+            Client.connect(applicationContext, setup)
+        else{
+            intent = Intent(this, NoLocalAccount::class.java)
+            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            startActivity(intent)
+            finish()
+        }
 
     }
 
