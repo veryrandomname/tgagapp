@@ -16,12 +16,16 @@ class NoLocalAccount : AppCompatActivity() {
 
         buttonlogin.setOnClickListener {
             val intent = Intent(this, Login::class.java)
+            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
             startActivity(intent)
+            finish()
         }
 
         buttonregister.setOnClickListener {
             val intent = Intent(this, Register::class.java)
+            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
             startActivity(intent)
+            finish()
         }
     }
 }

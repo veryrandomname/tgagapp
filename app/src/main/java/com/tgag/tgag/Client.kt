@@ -3,10 +3,11 @@ package com.tgag.tgag
 import android.content.Context
 import android.graphics.Bitmap
 import android.util.Base64
-import android.view.ViewGroup.LayoutParams.*
+import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
+import com.android.volley.NetworkResponse
 import com.android.volley.Request
 import com.android.volley.RequestQueue
 import com.android.volley.Response
@@ -22,16 +23,29 @@ import java.net.CookieManager
 import java.security.SecureRandom
 import java.util.*
 
-open class Meme(val itemID: Int, val author: String, val title : String)
-class ImageMeme(itemID: Int, val bitmap: Bitmap, author: String, title: String) : Meme(itemID,author, title)
-class VideoMeme (itemID: Int, val file: File, author: String, title: String) : Meme(itemID,author,title)
+open class Meme(val itemID: Int, val title: String?, val author: String?)
+class ImageMeme(itemID: Int, val bitmap: Bitmap, title: String?, author: String?) : Meme(
+    itemID,
+    title,
+    author
+)
+class VideoMeme(itemID: Int, val file: File, title: String?, author: String?) : Meme(
+    itemID,
+    title,
+    author
+)
 
-class MemeInfo(private val obj : JSONObject){
+fun optString(json: JSONObject, key: String?): String? {
+    // http://code.google.com/p/android/issues/detail?id=13830
+    return if (json.isNull(key)) null else json.optString(key, null)
+}
+
+class MemeInfo(private val obj: JSONObject){
     val item_id = obj.getInt("itemID")
-    val title = obj.getString("title")
-    val url = obj.getString("url")
+    val title: String? = optString(obj,"title")
+    val url: String = obj.getString("url")
     val thumbnail_url = obj.getString("thumbnail_url")
-    val author = obj.getString("author")
+    val author: String? = optString(obj,"author")
     val filename = obj.getString("filename")
     val file_extension = obj.getString("file_extension")
     val type = obj.getString("type")
@@ -50,7 +64,7 @@ object Client {
     var registered: Boolean = false
     val k = BuildConfig.DEBUG
     
-    val baseurl: String = "http://192.168.1.116:5000"
+    val baseurl: String = "http://192.168.178.126:5000"
     //val baseurl: String = "https://tgag.app"
 
     private fun getQueue(ctx: Context): RequestQueue {
@@ -60,7 +74,7 @@ object Client {
         return queue!!
     }
 
-    private fun <T> addRequest(ctx: Context, req : Request<T>){
+    private fun <T> addRequest(ctx: Context, req: Request<T>){
         getQueue(ctx).add(req)
     }
 
@@ -69,13 +83,19 @@ object Client {
 
         val req = StringRequest(
             Request.Method.POST, url,
-            {_ -> },
-            {_ ->}
+            { _ -> },
+            { _ -> }
         )
         Client.getQueue(ctx).add(req)
     }
 
-    fun login(ctx: Context, username : String, password : String, listener: Response.Listener<JSONObject>, error_listener: Response.ErrorListener){
+    fun login(
+        ctx: Context,
+        username: String,
+        password: String,
+        listener: Response.Listener<JSONObject>,
+        error_listener: Response.ErrorListener
+    ){
         val url = "$baseurl/login_app"
         val jsonBody = JSONObject()
 
@@ -91,34 +111,42 @@ object Client {
     }
 
     fun login_saved(ctx: Context, listener: Response.Listener<JSONObject>) {
-        val pref = ctx.getSharedPreferences("client",Context.MODE_PRIVATE)
+        val pref = ctx.getSharedPreferences("client", Context.MODE_PRIVATE)
         uniqueID = pref.getString("id", null)
         password = pref.getString("pw", null)
         registered = pref.getBoolean("registered", false)
 
-        login(ctx, uniqueID!!, password!!, listener, Response.ErrorListener{_ ->})
+        login(ctx, uniqueID!!, password!!, listener, Response.ErrorListener { _ -> })
     }
 
-    fun file_upload(ctx: Context, filestream: InputStream, filetype: String, title: String, show_username : Boolean) {
+    fun file_upload(
+        ctx: Context,
+        filestream: InputStream,
+        filetype: String,
+        title: String,
+        show_username: Boolean,
+        listener: Response.Listener<NetworkResponse>,
+        error_listener: Response.ErrorListener
+    ): UploadRequest {
         val freq = UploadRequest(
             "$baseurl/upload",
             filestream,
             "androidupload.$filetype",
             title,
             show_username,
-            Response.Listener { response ->
-            },
-            Response.ErrorListener { error ->
-            })
+            listener,
+            error_listener)
 
         Client.getQueue(ctx).add(freq)
+
+        return freq
     }
 
     fun register_anon(
         ctx: Context,
         listener: Response.Listener<JSONObject>
     ) {
-        val pref = ctx.getSharedPreferences("client",Context.MODE_PRIVATE)
+        val pref = ctx.getSharedPreferences("client", Context.MODE_PRIVATE)
 
         uniqueID = UUID.randomUUID().toString()
 
@@ -160,13 +188,18 @@ object Client {
     var memeimgs = HashMap<Int, Meme>()
     private var memesdone = HashSet<Int>()
 
-    private fun get_meme_remote(ctx: Context, m: MemeInfo, thumbnail : Boolean, callback: (Meme) -> Unit) {
+    private fun get_meme_remote(
+        ctx: Context,
+        m: MemeInfo,
+        thumbnail: Boolean,
+        callback: (Meme) -> Unit
+    ) {
         val url = if(!thumbnail) m.url else m.thumbnail_url
         if (m.type == "image" || thumbnail) {
             val imReq =
                 ImageRequest(url,
                     { bitmap: Bitmap ->
-                        callback(ImageMeme(m.item_id, bitmap, m.author, m.title))
+                        callback(ImageMeme(m.item_id, bitmap, m.title, m.author))
                     },
                     1000,
                     1000,
@@ -185,23 +218,23 @@ object Client {
                         Response.Listener { bytes: ByteArray ->
                             tmp = createTempFile(m.filename, null, ctx.cacheDir)
                             tmp.writeBytes(bytes)
-                            callback(VideoMeme(m.item_id, tmp, m.author, m.title))
+                            callback(VideoMeme(m.item_id, tmp, m.title, m.author))
                         },
                         Response.ErrorListener { _ -> })
 
                 getQueue(ctx).add(fileReq)
             } else {
-                callback(VideoMeme(m.item_id, tmp, m.author, m.title))
+                callback(VideoMeme(m.item_id, tmp, m.title, m.author))
             }
         }
     }
 
 
-    private fun put_remote_meme_in_pool(ctx: Context, m : MemeInfo, callback: () -> Unit){
+    private fun put_remote_meme_in_pool(ctx: Context, m: MemeInfo, callback: () -> Unit){
         if (!memesdone.contains(m.item_id)) {
             memesdone.add(m.item_id)
 
-            get_meme_remote(ctx,m, false) { meme ->
+            get_meme_remote(ctx, m, false) { meme ->
                 memeimgs[meme.itemID] = meme
                 callback()
             }
@@ -222,7 +255,7 @@ object Client {
                 for (i in 0 until top.length()) {
                     val obj = top.getJSONObject(i)
                     put_remote_meme_in_pool(ctx, MemeInfo(obj)) {
-                        if (!once){
+                        if (!once) {
                             once = true
                             callback()
                         }
@@ -235,7 +268,13 @@ object Client {
         Client.getQueue(ctx).add(jsonObjectRequest)
     }
 
-    private fun create_image(ctx: Context, container: LinearLayout, bitmap: Bitmap, likes : Int, dislikes : Int){
+    private fun create_image(
+        ctx: Context,
+        container: LinearLayout,
+        bitmap: Bitmap,
+        likes: Int,
+        dislikes: Int
+    ){
         val imgView = ImageView(ctx)
         imgView.setImageBitmap(bitmap)
         container.addView(imgView, MATCH_PARENT, 1000)
@@ -251,7 +290,7 @@ object Client {
 
     var my_upload_cache = HashMap<Int, Meme>()
 
-    fun display_my_uploads(ctx: Context, container : LinearLayout) {
+    fun display_my_uploads(ctx: Context, container: LinearLayout) {
         val url = "$baseurl/my_uploads_app"
 
         val jsonObjectRequest = JsonObjectRequest(
@@ -266,20 +305,19 @@ object Client {
                     val likes = rating.getInt(1)
                     val m = MemeInfo(obj)
 
-                    if(!my_upload_cache.containsKey(m.item_id)) {
+                    if (!my_upload_cache.containsKey(m.item_id)) {
                         get_meme_remote(ctx, m, true) { meme ->
-                            if(meme is ImageMeme) {
+                            if (meme is ImageMeme) {
                                 val img = meme as ImageMeme
                                 my_upload_cache[img.itemID] = img
                                 create_image(ctx, container, img.bitmap, likes, dislikes)
                             }
 
                         }
-                    }
-                    else {
+                    } else {
                         val meme = my_upload_cache[m.item_id]
-                        if(meme is ImageMeme){
-                            create_image(ctx, container,meme.bitmap, likes, dislikes)
+                        if (meme is ImageMeme) {
+                            create_image(ctx, container, meme.bitmap, likes, dislikes)
                         }
 
                     }
@@ -316,12 +354,12 @@ object Client {
     }
 
     fun hasLocalLogin(ctx: Context) : Boolean {
-        val pref = ctx.getSharedPreferences("client",Context.MODE_PRIVATE)
+        val pref = ctx.getSharedPreferences("client", Context.MODE_PRIVATE)
         return pref.contains("id")
     }
 
     fun deleteLocalLogin(ctx: Context){
-        val pref = ctx.getSharedPreferences("client",Context.MODE_PRIVATE)
+        val pref = ctx.getSharedPreferences("client", Context.MODE_PRIVATE)
         val editor  = pref.edit()
         editor.remove("id")
         editor.remove("pw")
@@ -329,8 +367,8 @@ object Client {
         editor.apply()
     }
 
-    fun setLocalLogin(ctx: Context, username: String, password: String, registered : Boolean){
-        val pref = ctx.getSharedPreferences("client",Context.MODE_PRIVATE)
+    fun setLocalLogin(ctx: Context, username: String, password: String, registered: Boolean){
+        val pref = ctx.getSharedPreferences("client", Context.MODE_PRIVATE)
         val editor  = pref.edit()
         editor.putString("id", username)
         editor.putString("pw", password)
@@ -341,7 +379,7 @@ object Client {
     fun connect(ctx: Context, setup: () -> Unit) {
         CookieHandler.setDefault(CookieManager())
 
-        val pref = ctx.getSharedPreferences("client",Context.MODE_PRIVATE)
+        val pref = ctx.getSharedPreferences("client", Context.MODE_PRIVATE)
 
         uniqueID = pref.getString("id", null)
         if (uniqueID == null) {
@@ -354,10 +392,15 @@ object Client {
 
     }
 
-    fun register(ctx: Context, new_username : String, new_password : String, listener: Response.Listener<JSONObject>,
-                 error_listener : Response.ErrorListener){
+    fun register(
+        ctx: Context,
+        new_username: String,
+        new_password: String,
+        listener: Response.Listener<JSONObject>,
+        error_listener: Response.ErrorListener
+    ){
 
-        val pref = ctx.getSharedPreferences("client",Context.MODE_PRIVATE)
+        val pref = ctx.getSharedPreferences("client", Context.MODE_PRIVATE)
 
         val jsonBody = JSONObject()
 

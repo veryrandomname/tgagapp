@@ -33,6 +33,12 @@ class UploadRequest(
         val lineEnd = "\r\n"
 
         dos.writeBytes(twoHyphens + boundary + lineEnd)
+        dos.writeBytes("Content-Disposition: form-data; name=\"title\"$lineEnd$lineEnd$title")
+        dos.writeBytes(lineEnd)
+        dos.writeBytes(twoHyphens + boundary + lineEnd)
+        dos.writeBytes("Content-Disposition: form-data; name=\"show_username\"$lineEnd$lineEnd$show_username")
+        dos.writeBytes(lineEnd)
+        dos.writeBytes(twoHyphens + boundary + lineEnd)
         dos.writeBytes("Content-Disposition: form-data; name=\"photo\"; filename=\"$fileName\"$lineEnd")
         dos.writeBytes(lineEnd)
         val buffer = ByteArray(10240)

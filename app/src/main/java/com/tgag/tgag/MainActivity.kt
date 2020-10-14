@@ -120,8 +120,8 @@ class MainActivity : AppCompatActivity() {
             val mimetypes =
                 arrayOf("image/*", "video/*")
             intent.putExtra(Intent.EXTRA_MIME_TYPES, mimetypes)
-            intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
-            startActivityForResult(Intent.createChooser(intent, "Select Picture or Video"), 1)
+            //intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
+            startActivityForResult(Intent.createChooser(intent, "Upload a picture or a video"), 1)
 
 
             //val intent = Intent()
@@ -162,8 +162,8 @@ class MainActivity : AppCompatActivity() {
         }
 
         else -> {
-// If we got here, the user's action was not recognized.
-// Invoke the superclass to handle it.
+            // If we got here, the user's action was not recognized.
+            // Invoke the superclass to handle it.
             super.onOptionsItemSelected(item)
         }
     }
@@ -182,15 +182,18 @@ class MainActivity : AppCompatActivity() {
 
         var mediaplayer : MediaPlayer? = null
         val pref = getSharedPreferences("main",Context.MODE_PRIVATE)
-        var volume = pref.getBoolean("volume", true)
+        var volume = false
+        var video_is_playing = false
 
         videoView.setOnPreparedListener(OnPreparedListener { mp ->
             mediaplayer = mp
             if (volume)
-                mediaplayer!!.setVolume(0f, 0f)
+                mediaplayer?.setVolume(1f, 1f)
             else
-                mediaplayer!!.setVolume(1f, 1f)
+                mediaplayer?.setVolume(0f, 0f)
             mp.isLooping = true
+            if(video_is_playing)
+                videoView.start()
         })
 
 
@@ -218,13 +221,13 @@ class MainActivity : AppCompatActivity() {
                     Client.get_new_memes(applicationContext) {}
                 }
                 for ((key, value) in Client.memeimgs) {
-//TODO: what happens if the rating does not get trough?
+                    //TODO: what happens if the rating does not get trough?
                     Client.memeimgs.remove(key)
 
                     return Pair(key, value)
                 }
                 return null
-//throw Exception("trying to pick meme from empty memeimgs")
+                //throw Exception("trying to pick meme from empty memeimgs")
             }
 
 
@@ -238,9 +241,13 @@ class MainActivity : AppCompatActivity() {
 
                 if (m is ImageMeme) {
                     imageView.setImageBitmap(m.bitmap)
+                    videoView.stopPlayback()
+                    mute_button.visibility = View.INVISIBLE
+                    video_is_playing = false
                 } else if(m is VideoMeme) {
+                    video_is_playing = true
                     videoView.setVideoPath(m.file.absolutePath)
-                    videoView.start()
+                    mute_button.visibility = if (!volume) { View.VISIBLE } else {View.INVISIBLE}
                 }
                 else {
                     imageView.setImageResource(R.drawable.outofmemes)
@@ -249,13 +256,18 @@ class MainActivity : AppCompatActivity() {
                 memeView().bringToFront()
                 author.bringToFront()
                 meme_title.bringToFront()
-                if (m != null) {
+                mute_button.bringToFront()
+                if (meme?.author != null) {
                     author.text = meme!!.author
                     author.visibility = View.VISIBLE
+                } else {
+                    author.visibility = View.INVISIBLE
+                }
+
+                if (meme?.title != null) {
                     meme_title.text = meme!!.title
                     meme_title.visibility = View.VISIBLE
                 } else {
-                    author.visibility = View.INVISIBLE
                     meme_title.visibility = View.INVISIBLE
                 }
 
@@ -270,29 +282,23 @@ class MainActivity : AppCompatActivity() {
                 var mDetector: GestureDetectorCompat = GestureDetectorCompat(ctx, this)
 
                 override fun onShowPress(p0: MotionEvent?) {
-//TODO("Not yet implemented")
                 }
 
                 override fun onSingleTapUp(p0: MotionEvent?): Boolean {
-//TODO("Not yet implemented")
                     if(mediaplayer != null){
-                        if (volume)
-                            mediaplayer!!.setVolume(0f, 0f)
-                        else
-                            mediaplayer!!.setVolume(1f, 1f)
                         volume = !volume
+                        mute_button.visibility = if (!volume) { View.VISIBLE } else {View.INVISIBLE}
 
-                        val pref = getSharedPreferences("main",Context.MODE_PRIVATE)
-                        val editor = pref.edit()
-                        editor.putBoolean("volume",volume)
-                        editor.apply()
+                        if (volume)
+                            mediaplayer!!.setVolume(1f, 1f)
+                        else
+                            mediaplayer!!.setVolume(0f, 0f)
                     }
 
                     return true
                 }
 
                 override fun onDown(p0: MotionEvent?): Boolean {
-//TODO("Not yet implemented")
                     return true
                 }
 
@@ -302,7 +308,6 @@ class MainActivity : AppCompatActivity() {
                     vX: Float,
                     vY: Float
                 ): Boolean {
-//TODO("Not yet implemented")
                     if (abs(vX) > abs(vY) && abs(vX) > 10) {
 
                         ratingvisual.alpha = 1f
@@ -336,12 +341,10 @@ class MainActivity : AppCompatActivity() {
                     p2: Float,
                     p3: Float
                 ): Boolean {
-//TODO("Not yet implemented")
                     return true
                 }
 
                 override fun onLongPress(p0: MotionEvent?) {
-//TODO("Not yet implemented")
                 }
 
             }
@@ -375,10 +378,22 @@ class MainActivity : AppCompatActivity() {
                 }
                 imglist.mDetector.onTouchEvent(event)
             }
+
+            mute_button.setOnClickListener { _ ->
+                volume = !volume
+                mute_button.visibility = if (!volume) {
+                    View.VISIBLE
+                } else {
+                    View.INVISIBLE
+                }
+            }
         }
 
         if(Client.hasLocalLogin(applicationContext) || !getSharedPreferences("client",Context.MODE_PRIVATE).getBoolean("not_first_start", false))
-            Client.connect(applicationContext, setup)
+            if(!intent.getBooleanExtra("logged_in", false))
+                Client.connect(applicationContext, setup)
+            else
+                setup()
         else{
             intent = Intent(this, NoLocalAccount::class.java)
             intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)

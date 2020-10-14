@@ -30,6 +30,7 @@ class Login : AppCompatActivity() {
                     Client.setLocalLogin(applicationContext,username,password ,true)
                     val intent = Intent(this, MainActivity::class.java)
                     intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                    intent.putExtra("logged_in", true)
                     startActivity(intent)
                     finish()
                 },
