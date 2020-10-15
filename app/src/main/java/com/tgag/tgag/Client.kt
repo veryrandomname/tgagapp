@@ -64,7 +64,7 @@ object Client {
     var registered: Boolean = false
     val k = BuildConfig.DEBUG
     
-    val baseurl: String = "http://192.168.178.126:5000"
+    val baseurl: String = "http://192.168.1.116:5000"
     //val baseurl: String = "https://tgag.app"
 
     private fun getQueue(ctx: Context): RequestQueue {
@@ -194,8 +194,8 @@ object Client {
         thumbnail: Boolean,
         callback: (Meme) -> Unit
     ) {
-        val url = if(!thumbnail) m.url else m.thumbnail_url
-        if (m.type == "image" || thumbnail) {
+        if (m.type == "image" || (m.type == "video" && thumbnail)) {
+            val url = if(m.type == "video" && thumbnail) m.thumbnail_url else m.url
             val imReq =
                 ImageRequest(url,
                     { bitmap: Bitmap ->
@@ -215,12 +215,12 @@ object Client {
 
                 val fileReq =
                     FileRequest(m.url,
-                        Response.Listener { bytes: ByteArray ->
+                        { bytes: ByteArray ->
                             tmp = createTempFile(m.filename, null, ctx.cacheDir)
                             tmp.writeBytes(bytes)
                             callback(VideoMeme(m.item_id, tmp, m.title, m.author))
                         },
-                        Response.ErrorListener { _ -> })
+                        { _ -> })
 
                 getQueue(ctx).add(fileReq)
             } else {
