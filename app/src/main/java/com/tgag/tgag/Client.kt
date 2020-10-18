@@ -65,8 +65,8 @@ object Client {
     val k = BuildConfig.DEBUG
     var logged_in : Boolean = false
     
-    val baseurl: String = "http://192.168.1.116:5000"
-    //val baseurl: String = "https://tgag.app"
+    //val baseurl: String = "http://192.168.1.116:5000"
+    val baseurl: String = "https://tgag.app"
 
     private fun getQueue(ctx: Context): RequestQueue {
         if (queue == null)
@@ -106,6 +106,17 @@ object Client {
         val jsonObjectRequest = JsonObjectRequest(
             Request.Method.POST, url, jsonBody,
             { response : JSONObject ->
+                uniqueID = username
+                Client.password = password
+                registered = true
+
+                val pref = ctx.getSharedPreferences("client", Context.MODE_PRIVATE)
+                val editor = pref.edit()
+                editor.putString("id", uniqueID)
+                editor.putString("pw", Client.password)
+                editor.putBoolean("registered", true)
+                editor.apply()
+
                 logged_in = true
                 listener.onResponse(response)
             },

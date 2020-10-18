@@ -25,7 +25,7 @@ class Login : AppCompatActivity() {
             val username = username.text.toString()
             val password = password.text.toString()
             Client.login(applicationContext,username , password,
-                Response.Listener { response ->
+                { response ->
                     deleteLocalLogin(applicationContext)
                     Client.setLocalLogin(applicationContext,username,password ,true)
                     val intent = Intent(this, MainActivity::class.java)
@@ -34,7 +34,7 @@ class Login : AppCompatActivity() {
                     startActivity(intent)
                     finish()
                 },
-                Response.ErrorListener { error ->
+                { error ->
                     textView3.text = "Login Error"
                     textView3.setTextColor(Color.RED)
                 })
