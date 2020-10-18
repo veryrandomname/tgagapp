@@ -1,14 +1,15 @@
 package com.tgag.tgag
 
+import android.app.Activity
+import android.media.MediaPlayer
 import android.net.Uri
-import android.opengl.Visibility
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.view.MenuItem
 import android.view.View
 import android.webkit.MimeTypeMap
 import android.widget.Button
-import com.android.volley.Response
+import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.activity_upload.*
 
 class Upload : AppCompatActivity() {
@@ -21,16 +22,29 @@ class Upload : AppCompatActivity() {
         setSupportActionBar(findViewById(R.id.toolbar4))
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
 
-        val imguri: Uri = intent.extras?.get("imguri") as Uri
+        upload_preview_video.setOnPreparedListener(MediaPlayer.OnPreparedListener { mp ->
+            mp.setVolume(0f, 0f)
+            mp.isLooping = true
+            mp.start()
+        })
 
-        upload_preview.setImageURI(imguri)
 
+        val upload_uri: Uri = intent.extras?.get("imguri") as Uri
+
+        if (contentResolver.getType(upload_uri)!!.substringBefore('/') != "video"){
+            upload_preview_image.setImageURI(upload_uri)
+            upload_preview_video.visibility = View.INVISIBLE
+        }
+        else {
+            upload_preview_video.setVideoURI(upload_uri)
+            upload_preview_image.visibility = View.INVISIBLE
+        }
 
         val button: Button = findViewById(R.id.upload_button)
         button.setOnClickListener {
             button.setOnClickListener {}
 
-            current_upload_request = fileUpload(imguri, meme_title_input.text.toString(), show_username_switch.isChecked)
+            current_upload_request = fileUpload(upload_uri, meme_title_input.text.toString(), show_username_switch.isChecked)
         }
     }
 
@@ -46,10 +60,12 @@ class Upload : AppCompatActivity() {
             filetype!!,
             title,
             show_username,
-            Response.Listener{ _ ->
+            { _ ->
+                setResult(Activity.RESULT_OK)
                 finish()
             },
-            Response.ErrorListener { _ ->
+            { _ ->
+                setResult(Activity.RESULT_FIRST_USER)
                 finish()
             }
         )
@@ -60,6 +76,7 @@ class Upload : AppCompatActivity() {
         // handle arrow click here
         if (item.itemId == android.R.id.home) {
             current_upload_request?.cancel()
+            setResult(Activity.RESULT_CANCELED)
             finish() // close this activity and return to preview activity (if there is any)
         }
         return super.onOptionsItemSelected(item)

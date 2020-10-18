@@ -27,14 +27,14 @@ class Register : AppCompatActivity() {
             Client.register(applicationContext,
                 username_input.text.toString(),
                 password_input.text.toString(),
-                Response.Listener { response ->
+                {
                     val intent = Intent(this, MainActivity::class.java)
                     intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
                     intent.putExtra("logged_in", true)
                     startActivity(intent)
                     finish()
                 },
-                Response.ErrorListener { error ->
+                {
                     textView3.text = "Username taken"
                     textView3.setTextColor(Color.RED)
                 })

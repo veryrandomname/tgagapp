@@ -63,6 +63,7 @@ object Client {
     var password: String? = null
     var registered: Boolean = false
     val k = BuildConfig.DEBUG
+    var logged_in : Boolean = false
     
     val baseurl: String = "http://192.168.1.116:5000"
     //val baseurl: String = "https://tgag.app"
@@ -83,7 +84,7 @@ object Client {
 
         val req = StringRequest(
             Request.Method.POST, url,
-            { _ -> },
+            { _ -> logged_in = false },
             { _ -> }
         )
         Client.getQueue(ctx).add(req)
@@ -104,7 +105,10 @@ object Client {
 
         val jsonObjectRequest = JsonObjectRequest(
             Request.Method.POST, url, jsonBody,
-            listener,
+            { response : JSONObject ->
+                logged_in = true
+                listener.onResponse(response)
+            },
             error_listener
         )
         Client.getQueue(ctx).add(jsonObjectRequest)
@@ -175,6 +179,9 @@ object Client {
                 editor.putBoolean("registered", false)
                 editor.putBoolean("not_first_start", true)
                 editor.apply()
+
+                logged_in = true
+
 
                 listener.onResponse(response)
             },
@@ -409,7 +416,7 @@ object Client {
         jsonBody.put("username", new_username)
         jsonBody.put("password", new_password)
 
-        val url = if (pref.contains("username")){
+        val url = if (pref.contains("id")){
             jsonBody.put("old_username", uniqueID)
             "$baseurl/merge_app_user"
         }
@@ -430,6 +437,9 @@ object Client {
                 editor.putString("pw", password)
                 editor.putBoolean("registered", true)
                 editor.apply()
+
+                logged_in = true
+
 
                 listener.onResponse(response)
             },
