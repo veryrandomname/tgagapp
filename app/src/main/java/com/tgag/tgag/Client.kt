@@ -65,8 +65,8 @@ object Client {
     val k = BuildConfig.DEBUG
     var logged_in : Boolean = false
     
-    //val baseurl: String = "http://192.168.1.116:5000"
-    val baseurl: String = "https://tgag.app"
+    val baseurl: String = "http://192.168.1.116:5000"
+    //val baseurl: String = "https://tgag.app"
 
     private fun getQueue(ctx: Context): RequestQueue {
         if (queue == null)
@@ -106,18 +106,9 @@ object Client {
         val jsonObjectRequest = JsonObjectRequest(
             Request.Method.POST, url, jsonBody,
             { response : JSONObject ->
-                uniqueID = username
-                Client.password = password
-                registered = true
 
-                val pref = ctx.getSharedPreferences("client", Context.MODE_PRIVATE)
-                val editor = pref.edit()
-                editor.putString("id", uniqueID)
-                editor.putString("pw", Client.password)
-                editor.putBoolean("registered", true)
-                editor.apply()
+                setLocalLogin(ctx, username, password, true)
 
-                logged_in = true
                 listener.onResponse(response)
             },
             error_listener
@@ -184,15 +175,11 @@ object Client {
             Request.Method.POST, url, jsonBody,
             { response ->
 
+                setLocalLogin(ctx, uniqueID!!, password!!, false)
+
                 val editor = pref.edit()
-                editor.putString("id", uniqueID)
-                editor.putString("pw", password)
-                editor.putBoolean("registered", false)
                 editor.putBoolean("not_first_start", true)
                 editor.apply()
-
-                logged_in = true
-
 
                 listener.onResponse(response)
             },
@@ -377,6 +364,10 @@ object Client {
     }
 
     fun deleteLocalLogin(ctx: Context){
+        uniqueID = null
+        password = null
+        registered = false
+
         val pref = ctx.getSharedPreferences("client", Context.MODE_PRIVATE)
         val editor  = pref.edit()
         editor.remove("id")
@@ -386,12 +377,18 @@ object Client {
     }
 
     fun setLocalLogin(ctx: Context, username: String, password: String, registered: Boolean){
+        Client.uniqueID = username
+        Client.password = password
+        Client.registered = registered
+
         val pref = ctx.getSharedPreferences("client", Context.MODE_PRIVATE)
         val editor  = pref.edit()
         editor.putString("id", username)
         editor.putString("pw", password)
         editor.putBoolean("registered", registered)
         editor.apply()
+
+        logged_in = true
     }
 
     fun connect(ctx: Context, setup: () -> Unit) {
@@ -439,19 +436,7 @@ object Client {
         val jsonObjectRequest = JsonObjectRequest(
             Request.Method.POST, url, jsonBody,
             Response.Listener { response ->
-                uniqueID = new_username
-                password = new_password
-                registered = true
-
-                val editor = pref.edit()
-                editor.putString("id", uniqueID)
-                editor.putString("pw", password)
-                editor.putBoolean("registered", true)
-                editor.apply()
-
-                logged_in = true
-
-
+                setLocalLogin(ctx, new_username, new_password, true)
                 listener.onResponse(response)
             },
             error_listener
