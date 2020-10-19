@@ -1,4 +1,4 @@
-package com.tgag.tgag
+package com.swepe.swepe
 
 import org.junit.Test
 

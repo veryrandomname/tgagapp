@@ -1,39 +1,40 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.tgag.tgag">
+    package="com.swepe.swepe"  android:versionCode="1" android:versionName="alpha:1"
+    >
 
     <uses-permission android:name="android.permission.INTERNET" />
 
     <application
         android:allowBackup="true"
-        android:icon="@mipmap/ic_launcher"
+        android:icon="@mipmap/launcher_2"
         android:label="@string/app_name"
-        android:roundIcon="@mipmap/ic_launcher_round"
+        android:roundIcon="@mipmap/launcher_2_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
-        android:usesCleartextTraffic="true">
-        <activity android:name=".Upload"
-            android:parentActivityName=".MainActivity"
+        android:usesCleartextTraffic="false">
+        <activity android:name="com.swepe.swepe.Upload"
+            android:parentActivityName="com.swepe.swepe.MainActivity"
             >
 
         </activity>
-        <activity android:name=".NoLocalAccount" />
-        <activity android:name=".Login" />
+        <activity android:name="com.swepe.swepe.NoLocalAccount" />
+        <activity android:name="com.swepe.swepe.Login" />
         <activity
-            android:name=".MyUploads"
+            android:name="com.swepe.swepe.MyUploads"
             android:label="@string/title_activity_my_uploads"
-            android:parentActivityName=".MainActivity"
+            android:parentActivityName="com.swepe.swepe.MainActivity"
             android:theme="@style/AppTheme.NoActionBar">
 
             <!-- Parent activity meta-data to support 4.0 and lower -->
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value="com.tgag.tgag.MainActivity" />
+                android:value="com.swepe.swepe.MainActivity" />
         </activity>
         <activity
-            android:name=".Register">
+            android:name="com.swepe.swepe.Register">
         </activity>
-        <activity android:name=".MainActivity">
+        <activity android:name="com.swepe.swepe.MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 

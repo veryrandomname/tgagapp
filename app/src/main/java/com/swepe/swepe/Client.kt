@@ -1,4 +1,4 @@
-package com.tgag.tgag
+package com.swepe.swepe
 
 import android.content.Context
 import android.graphics.Bitmap
@@ -65,8 +65,8 @@ object Client {
     val k = BuildConfig.DEBUG
     var logged_in : Boolean = false
     
-    val baseurl: String = "http://192.168.1.116:5000"
-    //val baseurl: String = "https://tgag.app"
+    //val baseurl: String = "http://192.168.1.116:5000"
+    val baseurl: String = "https://tgag.app"
 
     private fun getQueue(ctx: Context): RequestQueue {
         if (queue == null)
@@ -244,6 +244,8 @@ object Client {
                 callback()
             }
         }
+        else
+            callback()
     }
 
 

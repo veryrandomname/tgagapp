@@ -1,10 +1,9 @@
-package com.tgag.tgag
+package com.swepe.swepe
 
 import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.widget.Button
-import com.android.volley.Response
 
 class NoLocalAccount : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {

@@ -1,4 +1,4 @@
-package com.tgag.tgag
+package com.swepe.swepe
 
 import android.os.Bundle
 import com.google.android.material.appbar.CollapsingToolbarLayout

@@ -1,12 +1,9 @@
-package com.tgag.tgag
+package com.swepe.swepe
 
 import com.android.volley.NetworkResponse
-import com.android.volley.ParseError
 import com.android.volley.Request
 import com.android.volley.Response
 import com.android.volley.toolbox.HttpHeaderParser
-import java.io.UnsupportedEncodingException
-import java.nio.charset.Charset
 
 
 class FileRequest(

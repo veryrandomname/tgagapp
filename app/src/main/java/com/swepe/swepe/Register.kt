@@ -1,45 +1,44 @@
-package com.tgag.tgag
+package com.swepe.swepe
 
 import android.content.Intent
 import android.graphics.Color
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.view.MenuItem
 import android.widget.Button
-import com.android.volley.Response
-import com.tgag.tgag.Client.deleteLocalLogin
-import kotlinx.android.synthetic.main.activity_login.*
+import androidx.appcompat.app.AppCompatActivity
 import kotlinx.android.synthetic.main.activity_register.*
 
-class Login : AppCompatActivity() {
+
+
+class Register : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_login)
+        setContentView(R.layout.activity_register)
 
-        setSupportActionBar(findViewById(R.id.login_toolbar))
+        setSupportActionBar(findViewById(R.id.toolbar3))
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
 
-
-        val button: Button = findViewById(R.id.button)
+        val button: Button = findViewById(R.id.register_button)
         button.setOnClickListener {
-            val username = username.text.toString()
-            val password = password.text.toString()
-            Client.login(applicationContext,username , password,
-                { response ->
-                    deleteLocalLogin(applicationContext)
-                    Client.setLocalLogin(applicationContext,username,password ,true)
+
+            Client.register(applicationContext,
+                username_input.text.toString(),
+                password_input.text.toString(),
+                {
                     val intent = Intent(this, MainActivity::class.java)
                     intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
                     intent.putExtra("logged_in", true)
                     startActivity(intent)
                     finish()
                 },
-                { error ->
-                    textView3.text = "Login Error"
+                {
+                    textView3.text = "Username taken"
                     textView3.setTextColor(Color.RED)
                 })
         }
+
     }
+
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         // handle arrow click here
@@ -48,4 +47,5 @@ class Login : AppCompatActivity() {
         }
         return super.onOptionsItemSelected(item)
     }
+
 }

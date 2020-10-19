@@ -1,4 +1,4 @@
-package com.tgag.tgag
+package com.swepe.swepe
 
 import android.app.Activity
 import android.media.MediaPlayer
@@ -9,7 +9,6 @@ import android.view.MenuItem
 import android.view.View
 import android.webkit.MimeTypeMap
 import android.widget.Button
-import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.activity_upload.*
 
 class Upload : AppCompatActivity() {

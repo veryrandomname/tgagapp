@@ -1,4 +1,4 @@
-package com.tgag.tgag
+package com.swepe.swepe
 
 import android.annotation.SuppressLint
 import android.app.Activity
@@ -327,8 +327,10 @@ class MainActivity : AppCompatActivity() {
             }
 
             if(active_meme == null){
+                main_progressBar.visibility = View.VISIBLE
                 Client.get_new_memes(applicationContext) {
                     update_meme()
+                    main_progressBar.visibility = View.INVISIBLE
                 }
             }
             else{
