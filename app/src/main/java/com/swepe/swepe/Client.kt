@@ -62,11 +62,11 @@ object Client {
     var uniqueID: String? = null
     var password: String? = null
     var registered: Boolean = false
-    val k = BuildConfig.DEBUG
     var logged_in : Boolean = false
     
     //val baseurl: String = "http://192.168.1.116:5000"
-    val baseurl: String = "https://tgag.app"
+    //val baseurl: String = "https://tgag.app"
+    private const val baseurl : String = BuildConfig.SERVER_URL
 
     private fun getQueue(ctx: Context): RequestQueue {
         if (queue == null)

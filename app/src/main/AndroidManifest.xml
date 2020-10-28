@@ -12,7 +12,7 @@
         android:roundIcon="@mipmap/launcher_2_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
-        android:usesCleartextTraffic="false">
+        android:usesCleartextTraffic="true">
         <activity android:name="com.swepe.swepe.Upload"
             android:parentActivityName="com.swepe.swepe.MainActivity"
             >

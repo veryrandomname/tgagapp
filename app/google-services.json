@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "796269249402",
+    "firebase_url": "https://swepe-c3e93.firebaseio.com",
+    "project_id": "swepe-c3e93",
+    "storage_bucket": "swepe-c3e93.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:796269249402:android:b32b2c55a1558e3095ccc3",
+        "android_client_info": {
+          "package_name": "com.tgag.tgag"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "796269249402-lf275ah7s7e7jf5kkfoq2v3mv5r5bfvn.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCYImwbxC4JDqwyUZKT5DAsJN9eE4gCNZU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "796269249402-lf275ah7s7e7jf5kkfoq2v3mv5r5bfvn.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

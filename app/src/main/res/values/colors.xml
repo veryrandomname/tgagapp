@@ -1,8 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="colorPrimary">#FFD44F</color>
-    <color name="colorPrimaryDark">#FF9800</color>
-    <color name="colorAccent">#8BC34A</color>
+    <color name="colorPrimary">#242d36</color>
+    <color name="colorPrimaryDark">#121d23</color>
+    <color name="colorAccent">#949ba1</color>
     <color name="like">#4CAF50</color>
     <color name="dislike">#F44336</color>
+    <color name="background">#141d24</color>
+    <color name="brightText">#fbffff</color>
+    <color name="brightBackground">#333a40</color>
 </resources>

@@ -8,9 +8,15 @@ import android.media.MediaPlayer
 import android.media.MediaPlayer.OnPreparedListener
 import android.media.MediaPlayer.TrackInfo.MEDIA_TRACK_TYPE_AUDIO
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.view.*
+import android.view.ViewTreeObserver.OnGlobalLayoutListener
+import android.widget.LinearLayout
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatDelegate
+import androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_YES
+import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.view.GestureDetectorCompat
 import com.google.android.material.snackbar.BaseTransientBottomBar.LENGTH_LONG
 import com.google.android.material.snackbar.BaseTransientBottomBar.LENGTH_SHORT
@@ -106,13 +112,13 @@ class MainActivity : AppCompatActivity() {
 
         } else if (requestCode == 3){ //upload
             if (resultCode == Activity.RESULT_OK) {
-                Snackbar.make(main_layout,"Upload successful", LENGTH_SHORT).show()
+                Snackbar.make(main_layout, "Upload successful", LENGTH_SHORT).show()
             }
             else if(resultCode == Activity.RESULT_CANCELED) {
-                Snackbar.make(main_layout,"Upload canceled", LENGTH_SHORT).show()
+                Snackbar.make(main_layout, "Upload canceled", LENGTH_SHORT).show()
             }
             else {
-                Snackbar.make(main_layout,"Something went wrong with your upload", LENGTH_LONG).show()
+                Snackbar.make(main_layout, "Something went wrong with your upload", LENGTH_LONG).show()
             }
         }
 
@@ -209,15 +215,15 @@ class MainActivity : AppCompatActivity() {
         if (meme is ImageMeme)
             return imageView
         else if (meme is VideoMeme)
-            return videocontainer
+            return videoView
         else
             return imageView
     }
 
 
     fun display_meme(meme: Meme){
-        videocontainer.visibility = View.INVISIBLE
-        imageView.visibility = View.INVISIBLE
+        videoView.visibility = View.GONE
+        imageView.visibility = View.GONE
 
         if (meme is ImageMeme) {
             imageView.setImageBitmap(meme.bitmap)
@@ -230,10 +236,10 @@ class MainActivity : AppCompatActivity() {
         }
 
         memeView(meme).visibility = View.VISIBLE
-        memeView(meme).bringToFront()
-        author.bringToFront()
-        meme_title.bringToFront()
-        mute_button.bringToFront()
+        //meme_container.bringToFront()
+        //author.bringToFront()
+        //meme_title.bringToFront()
+        //mute_button.bringToFront()
         if (meme.author != null) {
             author.text = meme.author
             author.visibility = View.VISIBLE
@@ -265,10 +271,13 @@ class MainActivity : AppCompatActivity() {
     @SuppressLint("ClickableViewAccessibility")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        AppCompatDelegate.setDefaultNightMode(MODE_NIGHT_YES)
         setContentView(R.layout.activity_main)
-
         setSupportActionBar(findViewById(R.id.toolbar2))
 
+
+
+        val bigView = findViewById<View>(R.id.main_layout)
         ratingvisual.alpha = 0f
         author.visibility = View.INVISIBLE
 
@@ -294,14 +303,19 @@ class MainActivity : AppCompatActivity() {
             if (video_is_playing)
                 videoView.start()
 
-            if (audio_present(mp)){
+            if (audio_present(mp)) {
                 video_has_audio = true
-                mute_button.visibility = if (!volume) { View.VISIBLE } else {View.INVISIBLE}
-            }
-            else {
+                mute_button.visibility = if (!volume) {
+                    View.VISIBLE
+                } else {
+                    View.INVISIBLE
+                }
+            } else {
                 video_has_audio = false
             }
         })
+
+
 
 
         val setup = {
@@ -322,7 +336,7 @@ class MainActivity : AppCompatActivity() {
                 else {
                     imageView.setImageResource(R.drawable.outofmemes)
                     imageView.visibility = View.VISIBLE
-                    imageView.bringToFront()
+                    //imageView.bringToFront()
                 }
             }
 
@@ -411,7 +425,6 @@ class MainActivity : AppCompatActivity() {
 
 
             val imglist = ImageTouchListener(applicationContext)
-            val bigView = findViewById<View>(R.id.main_layout)
 
             bigView.setOnTouchListener { v, event ->
                 when (event.action) {

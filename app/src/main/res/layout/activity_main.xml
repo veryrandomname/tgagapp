@@ -4,9 +4,9 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#000000"
     tools:context=".MainActivity"
     android:id="@+id/main_layout"
+
     >
 
 
@@ -14,9 +14,7 @@
         android:id="@+id/toolbar2"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="?attr/colorPrimary"
         android:minHeight="?attr/actionBarSize"
-        android:theme="?attr/actionBarTheme"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
@@ -24,23 +22,19 @@
 
     <TextView
         android:id="@+id/meme_title"
-        android:layout_width="wrap_content"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:text="title"
-        android:textColor="@color/design_default_color_background"
         android:textSize="24sp"
-        app:layout_constraintBottom_toBottomOf="parent"
+        android:visibility="visible"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/toolbar2"
-        app:layout_constraintVertical_bias="0.0" />
+        tools:text="title" />
 
-    <LinearLayout
-        android:id="@+id/videocontainer"
+    <FrameLayout
+        android:id="@+id/meme_container"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:gravity="center|center_horizontal"
-        android:orientation="vertical"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -49,23 +43,21 @@
         <VideoView
             android:id="@+id/videoView"
             android:layout_width="match_parent"
-            android:layout_height="match_parent" />
+            android:layout_height="match_parent"
+            android:layout_gravity="center"
+            android:background="#00FFFFFF" />
 
-    </LinearLayout>
+        <ImageView
+            android:id="@+id/imageView"
 
-    <ImageView
-        android:id="@+id/imageView"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:visibility="invisible"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/meme_title"
-        app:layout_constraintVertical_bias="0.0"
-        app:srcCompat="@drawable/outofmemes"
-        tools:srcCompat="@tools:sample/backgrounds/scenic" />
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_gravity="center"
+            android:visibility="invisible"
+            app:srcCompat="@drawable/outofmemes"
+            tools:srcCompat="@tools:sample/backgrounds/scenic"
+            tools:visibility="visible" />
+    </FrameLayout>
 
     <ImageButton
         android:id="@+id/mute_button"
@@ -87,7 +79,6 @@
         android:backgroundTintMode="screen"
         android:text="author"
         android:textAppearance="@style/TextAppearance.AppCompat.Large"
-        android:textColor="#FFFFFF"
         android:visibility="visible"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
@@ -110,11 +101,10 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:visibility="invisible"
-        app:layout_constraintBottom_toBottomOf="@+id/videocontainer"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/toolbar2"
-        tools:visibility="invisible" />
+        tools:visibility="gone" />
 
 
 </androidx.constraintlayout.widget.ConstraintLayout>
