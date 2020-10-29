@@ -32,18 +32,7 @@ class MainActivity : AppCompatActivity() {
     var video_is_playing = false
     var video_has_audio = false
 
-    /*
-        override fun onCreateOptionsMenu(menu: Menu?): Boolean {
-            // R.menu.mymenu is a reference to an xml file named mymenu.xml which should be inside your res/menu directory.
-            // If you don't have res/menu, just create a directory named "menu" inside res
-            if (Client.registered)
-                menuInflater.inflate(R.menu.menu, menu)
-            else
-                menuInflater.inflate(R.menu.unregistered_menu, menu)
 
-            return super.onCreateOptionsMenu(menu)
-        }
-    */
     override fun onPrepareOptionsMenu(menu: Menu): Boolean {
         menu.clear()
         if (Client.registered)
@@ -53,42 +42,6 @@ class MainActivity : AppCompatActivity() {
         return super.onPrepareOptionsMenu(menu)
     }
 
-/*
-    private fun upload(uri: Uri) {
-        val filetype =
-            MimeTypeMap.getSingleton().getExtensionFromMimeType(contentResolver.getType(uri))
-
-        val tmpfilename = "tmp.$filetype"
-
-        openFileOutput(tmpfilename, Context.MODE_PRIVATE).use { stream ->
-            val buffer = ByteArray(10240)
-            var len: Int = 0
-            while (contentResolver.openInputStream(uri)!!.read(buffer).also { len = it } != -1) {
-                stream.write(buffer, 0, len)
-            }
-        }
-
-        val rc = FFmpeg.execute("-i $tmpfilename -c:v mpeg4 file2.mp4")
-
-        if (rc == RETURN_CODE_SUCCESS) {
-            Log.i(Config.TAG, "Command execution completed successfully.")
-        } else if (rc == RETURN_CODE_CANCEL) {
-            Log.i(Config.TAG, "Command execution cancelled by user.")
-        } else {
-            Log.i(
-                Config.TAG,
-                String.format("Command execution failed with rc=%d and the output below.", rc)
-            )
-            Config.printLastCommandOutput(Log.INFO)
-        }
-
-        Client.file_upload(
-            applicationContext,
-            contentResolver.openInputStream(uri)!!,
-            filetype!!
-        )
-    }
-*/
 
     override fun onActivityResult(
         requestCode: Int,
@@ -132,27 +85,13 @@ class MainActivity : AppCompatActivity() {
 
     override fun onOptionsItemSelected(item: MenuItem) = when (item.itemId) {
         R.id.upload -> {
-            // User chose the "Settings" item, show the app settings UI...
-            //val myIntent = Intent(this, Upload::class.java)
-            //startActivity(myIntent)
-
             val intent = Intent(Intent.ACTION_OPEN_DOCUMENT)
             intent.addCategory(Intent.CATEGORY_OPENABLE)
             intent.type = "*/*"
             val mimetypes =
                 arrayOf("image/*", "video/*")
             intent.putExtra(Intent.EXTRA_MIME_TYPES, mimetypes)
-            //intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
             startActivityForResult(Intent.createChooser(intent, "Upload a picture or a video"), 1)
-
-
-            //val intent = Intent()
-            //intent.type = "image/*"
-            //intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
-            //intent.action = Intent.ACTION_GET_CONTENT
-            //startActivityForResult(Intent.createChooser(intent, "Select Picture"), 1)
-
-
             true
         }
 
