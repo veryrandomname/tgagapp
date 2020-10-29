@@ -27,6 +27,11 @@ import kotlin.math.abs
 
 class MainActivity : AppCompatActivity() {
 
+    var active_meme : Meme? = null
+    var volume = false
+    var video_is_playing = false
+    var video_has_audio = false
+
     /*
         override fun onCreateOptionsMenu(menu: Menu?): Boolean {
             // R.menu.mymenu is a reference to an xml file named mymenu.xml which should be inside your res/menu directory.
@@ -178,17 +183,24 @@ class MainActivity : AppCompatActivity() {
             true
         }
 
+        R.id.report -> {
+            if (active_meme != null){
+                Client.report(applicationContext, active_meme!!.itemID, 0, {
+                    Snackbar.make(main_layout, "We have received your report.", LENGTH_LONG).show()
+                }, {
+                    Snackbar.make(main_layout, "We were not able to send your report, please try again later.", LENGTH_LONG).show()
+                })
+            }
+
+            true
+        }
+
         else -> {
             // If we got here, the user's action was not recognized.
             // Invoke the superclass to handle it.
             super.onOptionsItemSelected(item)
         }
     }
-
-    var active_meme : Meme? = null
-    var volume = false
-    var video_is_playing = false
-    var video_has_audio = false
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)

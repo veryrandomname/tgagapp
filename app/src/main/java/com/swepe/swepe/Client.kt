@@ -446,4 +446,25 @@ object Client {
 
         Client.getQueue(ctx).add(jsonObjectRequest)
     }
+
+    fun report(ctx: Context, itemID: Int, reason : Int,        listener: Response.Listener<JSONObject>,
+               error_listener: Response.ErrorListener
+    ){
+        val jsonBody = JSONObject()
+
+        //val pref = getPreferences(Context.MODE_PRIVATE)
+        //jsonBody.put("old_username", pref.getString("id", null))
+        jsonBody.put("itemID", itemID)
+        jsonBody.put("reason", reason)
+
+        val url = "$baseurl/report"
+
+        val jsonObjectRequest = JsonObjectRequest(
+            Request.Method.POST, url, jsonBody,
+            listener,
+            error_listener
+        )
+
+        Client.getQueue(ctx).add(jsonObjectRequest)
+    }
 }
