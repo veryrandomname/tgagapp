@@ -2,10 +2,10 @@ package com.swepe.swepe
 
 import android.content.Intent
 import android.graphics.Color
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.view.MenuItem
 import android.widget.Button
+import androidx.appcompat.app.AppCompatActivity
 import com.swepe.swepe.Client.deleteLocalLogin
 import kotlinx.android.synthetic.main.activity_login.*
 
@@ -22,12 +22,12 @@ class Login : AppCompatActivity() {
         button.setOnClickListener {
             val username = username.text.toString()
             val password = password.text.toString()
-            Client.login(applicationContext,username , password,
+            Client.login(applicationContext, username, password,
                 { response ->
                     deleteLocalLogin(applicationContext)
-                    Client.setLocalLogin(applicationContext,username,password ,true)
+                    Client.setLocalLogin(applicationContext, username, password, true)
                     val intent = Intent(this, MainActivity::class.java)
-                    intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
                     intent.putExtra("logged_in", true)
                     startActivity(intent)
                     finish()

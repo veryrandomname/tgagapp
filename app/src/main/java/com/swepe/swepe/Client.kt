@@ -66,7 +66,7 @@ object Client {
     
     //val baseurl: String = "http://192.168.1.116:5000"
     //val baseurl: String = "https://tgag.app"
-    private const val baseurl : String = BuildConfig.SERVER_URL
+    const val baseurl : String = BuildConfig.SERVER_URL
 
     private fun getQueue(ctx: Context): RequestQueue {
         if (queue == null)
@@ -176,10 +176,6 @@ object Client {
             { response ->
 
                 setLocalLogin(ctx, uniqueID!!, password!!, false)
-
-                val editor = pref.edit()
-                editor.putBoolean("not_first_start", true)
-                editor.apply()
 
                 listener.onResponse(response)
             },
@@ -388,6 +384,8 @@ object Client {
         editor.putString("id", username)
         editor.putString("pw", password)
         editor.putBoolean("registered", registered)
+        editor.putBoolean("not_first_start", true)
+
         editor.apply()
 
         logged_in = true

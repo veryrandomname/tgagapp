@@ -333,7 +333,7 @@ class MainActivity : AppCompatActivity() {
                     vX: Float,
                     vY: Float
                 ): Boolean {
-                    if (abs(vX) > abs(vY) && abs(vX) > 10) {
+                    if (abs(vX) > abs(vY) && abs(vX) > 20) {
 
                         ratingvisual.alpha = 1f
                         ratingvisual.scaleX = 1f
@@ -413,14 +413,23 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        if(Client.hasLocalLogin(applicationContext) || !getSharedPreferences(
+        if (!getSharedPreferences(
                 "client",
                 Context.MODE_PRIVATE
-            ).getBoolean("not_first_start", false))
-            if(!Client.logged_in)
+            ).getBoolean("not_first_start", false)){
+
+            intent = Intent(this, FirstStart::class.java)
+            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            startActivity(intent)
+            finish()
+        }
+        else if(Client.hasLocalLogin(applicationContext)) {
+            if (!Client.logged_in)
                 Client.connect(applicationContext, setup)
-            else
+            else {
                 setup()
+            }
+        }
         else{
             intent = Intent(this, NoLocalAccount::class.java)
             intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)

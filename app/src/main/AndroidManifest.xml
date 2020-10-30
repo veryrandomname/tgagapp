@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.swepe.swepe"  android:versionCode="1" android:versionName="alpha:1"
-    >
+    package="com.swepe.swepe"
+    android:versionCode="1"
+    android:versionName="alpha:1">
 
     <uses-permission android:name="android.permission.INTERNET" />
 
@@ -13,17 +14,16 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
         android:usesCleartextTraffic="true">
-        <activity android:name="com.swepe.swepe.Upload"
-            android:parentActivityName="com.swepe.swepe.MainActivity"
-            >
-
-        </activity>
-        <activity android:name="com.swepe.swepe.NoLocalAccount" />
-        <activity android:name="com.swepe.swepe.Login" />
+        <activity android:name=".FirstStart"></activity>
         <activity
-            android:name="com.swepe.swepe.MyUploads"
+            android:name=".Upload"
+            android:parentActivityName=".MainActivity"></activity>
+        <activity android:name=".NoLocalAccount" />
+        <activity android:name=".Login" />
+        <activity
+            android:name=".MyUploads"
             android:label="@string/title_activity_my_uploads"
-            android:parentActivityName="com.swepe.swepe.MainActivity"
+            android:parentActivityName=".MainActivity"
             android:theme="@style/AppTheme.NoActionBar">
 
             <!-- Parent activity meta-data to support 4.0 and lower -->
@@ -31,10 +31,8 @@
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="com.swepe.swepe.MainActivity" />
         </activity>
-        <activity
-            android:name="com.swepe.swepe.Register">
-        </activity>
-        <activity android:name="com.swepe.swepe.MainActivity">
+        <activity android:name=".Register"></activity>
+        <activity android:name=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
