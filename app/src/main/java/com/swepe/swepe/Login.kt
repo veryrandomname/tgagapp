@@ -29,6 +29,7 @@ class Login : AppCompatActivity() {
                     val intent = Intent(this, MainActivity::class.java)
                     intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
                     intent.putExtra("logged_in", true)
+                    Client.logged_in
                     startActivity(intent)
                     finish()
                 },

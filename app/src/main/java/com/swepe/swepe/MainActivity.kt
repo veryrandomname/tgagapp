@@ -22,6 +22,8 @@ import com.google.android.material.snackbar.BaseTransientBottomBar.LENGTH_LONG
 import com.google.android.material.snackbar.BaseTransientBottomBar.LENGTH_SHORT
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.android.synthetic.main.activity_main.*
+import java.net.CookieHandler
+import java.net.CookieManager
 import kotlin.math.abs
 
 
@@ -272,7 +274,7 @@ class MainActivity : AppCompatActivity() {
         val setup = {
 
             var lastx = 0f
-            val defaultx = imageView.x
+            var defaultx = 0f
 
             val update_meme = {
                 active_meme?.let { Client.memeimgs.remove(it.itemID) }
@@ -380,6 +382,7 @@ class MainActivity : AppCompatActivity() {
             bigView.setOnTouchListener { v, event ->
                 when (event.action) {
                     MotionEvent.ACTION_DOWN -> {
+                        defaultx = memeView(active_meme).x
                         memeView(active_meme).animate().cancel()
                         lastx = event.rawX
                         true
@@ -417,18 +420,16 @@ class MainActivity : AppCompatActivity() {
                 "client",
                 Context.MODE_PRIVATE
             ).getBoolean("not_first_start", false)){
-
             intent = Intent(this, FirstStart::class.java)
             intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
             startActivity(intent)
             finish()
         }
         else if(Client.hasLocalLogin(applicationContext)) {
-            if (!Client.logged_in)
-                Client.connect(applicationContext, setup)
-            else {
+            if(!Client.logged_in)
+                Client.connect(applicationContext, { setup() }, {})
+            else
                 setup()
-            }
         }
         else{
             intent = Intent(this, NoLocalAccount::class.java)

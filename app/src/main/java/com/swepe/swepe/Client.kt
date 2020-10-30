@@ -63,15 +63,19 @@ object Client {
     var password: String? = null
     var registered: Boolean = false
     var logged_in : Boolean = false
-    
+
+
     //val baseurl: String = "http://192.168.1.116:5000"
     //val baseurl: String = "https://tgag.app"
     const val baseurl : String = BuildConfig.SERVER_URL
 
     private fun getQueue(ctx: Context): RequestQueue {
-        if (queue == null)
+        if (queue == null){
+            CookieHandler.setDefault(CookieManager())
             queue = Volley.newRequestQueue(ctx)
 
+        }
+        
         return queue!!
     }
 
@@ -109,6 +113,9 @@ object Client {
 
                 setLocalLogin(ctx, username, password, true)
 
+                logged_in = true
+
+
                 listener.onResponse(response)
             },
             error_listener
@@ -116,13 +123,13 @@ object Client {
         Client.getQueue(ctx).add(jsonObjectRequest)
     }
 
-    fun login_saved(ctx: Context, listener: Response.Listener<JSONObject>) {
+    fun login_saved(ctx: Context, listener: Response.Listener<JSONObject>, error_listener: Response.ErrorListener) {
         val pref = ctx.getSharedPreferences("client", Context.MODE_PRIVATE)
         uniqueID = pref.getString("id", null)
         password = pref.getString("pw", null)
         registered = pref.getBoolean("registered", false)
 
-        login(ctx, uniqueID!!, password!!, listener, Response.ErrorListener { _ -> })
+        login(ctx, uniqueID!!, password!!, listener, error_listener)
     }
 
     fun file_upload(
@@ -150,7 +157,8 @@ object Client {
 
     fun register_anon(
         ctx: Context,
-        listener: Response.Listener<JSONObject>
+        listener: Response.Listener<JSONObject>,
+        error_listener: Response.ErrorListener
     ) {
         val pref = ctx.getSharedPreferences("client", Context.MODE_PRIVATE)
 
@@ -176,11 +184,12 @@ object Client {
             { response ->
 
                 setLocalLogin(ctx, uniqueID!!, password!!, false)
+                logged_in = true
+
 
                 listener.onResponse(response)
             },
-            { error ->
-            }
+            error_listener
         )
 
         Client.getQueue(ctx).add(jsonObjectRequest)
@@ -387,22 +396,16 @@ object Client {
         editor.putBoolean("not_first_start", true)
 
         editor.apply()
-
-        logged_in = true
     }
 
-    fun connect(ctx: Context, setup: () -> Unit) {
-        CookieHandler.setDefault(CookieManager())
-
+    fun connect(ctx: Context, listener: Response.Listener<JSONObject>, error_listener: Response.ErrorListener) {
         val pref = ctx.getSharedPreferences("client", Context.MODE_PRIVATE)
 
         uniqueID = pref.getString("id", null)
         if (uniqueID == null) {
-            register_anon(ctx, Response.Listener { response ->
-                setup()
-            })
+            register_anon(ctx, listener, error_listener)
         } else {
-            login_saved(ctx, Response.Listener { response -> setup() })
+            login_saved(ctx, listener, error_listener)
         }
 
     }
@@ -437,6 +440,8 @@ object Client {
             Request.Method.POST, url, jsonBody,
             Response.Listener { response ->
                 setLocalLogin(ctx, new_username, new_password, true)
+                logged_in = true
+
                 listener.onResponse(response)
             },
             error_listener

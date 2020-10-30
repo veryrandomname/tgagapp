@@ -35,11 +35,11 @@ class FirstStart : AppCompatActivity() {
 
 
         no_account.setOnClickListener {
-            Client.connect(applicationContext) {
+            Client.connect(applicationContext, {
                 val intent = Intent(this, MainActivity::class.java)
                 startActivity(intent)
                 finish()
-            }
+            } , {})
         }
 
 
