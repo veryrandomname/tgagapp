@@ -198,6 +198,18 @@ object Client {
     var memeimgs = HashMap<Int, Meme>()
     private var memesdone = HashSet<Int>()
 
+    fun popMeme(meme_id : Int){
+        val m = memeimgs[meme_id]
+
+        if (m is VideoMeme){
+            m.file.delete()
+        }
+
+        if (m != null){
+            memeimgs.remove(meme_id)
+        }
+    }
+
     private fun get_meme_remote(
         ctx: Context,
         m: MemeInfo,

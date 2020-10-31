@@ -4,26 +4,28 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import android.media.AudioAttributes
+import android.media.AudioFocusRequest
+import android.media.AudioManager
+import android.media.AudioManager.AUDIOFOCUS_NONE
 import android.media.MediaPlayer
 import android.media.MediaPlayer.OnPreparedListener
 import android.media.MediaPlayer.TrackInfo.MEDIA_TRACK_TYPE_AUDIO
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
 import android.view.*
-import android.view.ViewTreeObserver.OnGlobalLayoutListener
-import android.widget.LinearLayout
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_YES
-import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.core.content.ContextCompat
+import androidx.core.content.ContextCompat.getSystemService
 import androidx.core.view.GestureDetectorCompat
 import com.google.android.material.snackbar.BaseTransientBottomBar.LENGTH_LONG
 import com.google.android.material.snackbar.BaseTransientBottomBar.LENGTH_SHORT
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.android.synthetic.main.activity_main.*
-import java.net.CookieHandler
-import java.net.CookieManager
 import kotlin.math.abs
 
 
@@ -33,6 +35,7 @@ class MainActivity : AppCompatActivity() {
     var volume = false
     var video_is_playing = false
     var video_has_audio = false
+    var mediaplayer : MediaPlayer? = null
 
 
     override fun onPrepareOptionsMenu(menu: Menu): Boolean {
@@ -125,11 +128,15 @@ class MainActivity : AppCompatActivity() {
         }
 
         R.id.report -> {
-            if (active_meme != null){
+            if (active_meme != null) {
                 Client.report(applicationContext, active_meme!!.itemID, 0, {
                     Snackbar.make(main_layout, "We have received your report.", LENGTH_LONG).show()
                 }, {
-                    Snackbar.make(main_layout, "We were not able to send your report, please try again later.", LENGTH_LONG).show()
+                    Snackbar.make(
+                        main_layout,
+                        "We were not able to send your report, please try again later.",
+                        LENGTH_LONG
+                    ).show()
                 })
             }
 
@@ -173,6 +180,60 @@ class MainActivity : AppCompatActivity() {
             return imageView
     }
 
+    var mFocusRequest : AudioFocusRequest? = null
+
+    fun abandonAudioFocus(){
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O){
+            mFocusRequest?.let {
+                val mAudioManager = getSystemService(AUDIO_SERVICE) as AudioManager
+                mAudioManager.abandonAudioFocusRequest(it)
+            }
+            mFocusRequest = null
+        }
+    }
+
+    fun maybePlayAudio(){
+        if (!volume){
+            mediaplayer?.setVolume(0f, 0f)
+            abandonAudioFocus()
+        }
+        else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && volume){
+            val mAudioManager = getSystemService(AUDIO_SERVICE) as AudioManager
+            val mPlaybackAttributes = AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_MEDIA)
+                .setContentType(AudioAttributes.CONTENT_TYPE_MOVIE)
+                .build()
+
+            mFocusRequest = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_EXCLUSIVE)
+                .setAudioAttributes(mPlaybackAttributes)
+                .setAcceptsDelayedFocusGain(true)
+                .setWillPauseWhenDucked(false)
+                .setOnAudioFocusChangeListener({}, Handler())
+                .build()
+            val mMediaPlayer = MediaPlayer()
+            mMediaPlayer.setAudioAttributes(mPlaybackAttributes)
+            val mFocusLock = Any()
+
+            // requesting audio focus
+            val res: Int = mAudioManager.requestAudioFocus(mFocusRequest!!)
+            synchronized(mFocusLock) {
+                if (res == AudioManager.AUDIOFOCUS_REQUEST_FAILED) {
+                    mediaplayer?.setVolume(0f,0f)
+                } else if (res == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
+                    if (volume)
+                        mediaplayer?.setVolume(1f, 1f)
+                    else
+                        mediaplayer?.setVolume(0f, 0f)
+                }
+                else if (res == AudioManager.AUDIOFOCUS_REQUEST_DELAYED) {
+                }
+                else {}
+            }
+
+        }
+
+    }
+
 
     fun display_meme(meme: Meme){
         videoView.visibility = View.GONE
@@ -183,8 +244,14 @@ class MainActivity : AppCompatActivity() {
             videoView.stopPlayback()
             mute_button.visibility = View.INVISIBLE
             video_is_playing = false
+
+            abandonAudioFocus()
+
         } else if(meme is VideoMeme) {
             video_is_playing = true
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !volume)
+                videoView.setAudioFocusRequest(AUDIOFOCUS_NONE);
+
             videoView.setVideoPath(meme.file.absolutePath)
         }
 
@@ -218,8 +285,6 @@ class MainActivity : AppCompatActivity() {
         return false
     }
 
-
-
     @ExperimentalStdlibApi
     @SuppressLint("ClickableViewAccessibility")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -234,7 +299,7 @@ class MainActivity : AppCompatActivity() {
         ratingvisual.alpha = 0f
         author.visibility = View.INVISIBLE
 
-        var mediaplayer : MediaPlayer? = null
+        mediaplayer = null
 
         if (savedInstanceState != null) {
             if (savedInstanceState.containsKey("active_meme_id")) {
@@ -248,13 +313,11 @@ class MainActivity : AppCompatActivity() {
 
         videoView.setOnPreparedListener(OnPreparedListener { mp ->
             mediaplayer = mp
-            if (volume)
-                mediaplayer?.setVolume(1f, 1f)
-            else
-                mediaplayer?.setVolume(0f, 0f)
+            maybePlayAudio()
             mp.isLooping = true
-            if (video_is_playing)
+            if (video_is_playing) {
                 videoView.start()
+            }
 
             if (audio_present(mp)) {
                 video_has_audio = true
@@ -277,7 +340,7 @@ class MainActivity : AppCompatActivity() {
             var defaultx = 0f
 
             val update_meme = {
-                active_meme?.let { Client.memeimgs.remove(it.itemID) }
+                active_meme?.let { Client.popMeme(it.itemID) }
 
 
                 val p = pick_some_meme()
@@ -316,10 +379,7 @@ class MainActivity : AppCompatActivity() {
                         volume = !volume
                         mute_button.visibility = if (!volume) { View.VISIBLE } else {View.INVISIBLE}
 
-                        if (volume)
-                            mediaplayer!!.setVolume(1f, 1f)
-                        else
-                            mediaplayer!!.setVolume(0f, 0f)
+                        maybePlayAudio()
                     }
 
                     return true
