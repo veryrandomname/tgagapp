@@ -110,8 +110,8 @@ object Client {
         val jsonObjectRequest = JsonObjectRequest(
             Request.Method.POST, url, jsonBody,
             { response : JSONObject ->
-
-                setLocalLogin(ctx, username, password, true)
+                val pref = ctx.getSharedPreferences("client", Context.MODE_PRIVATE)
+                setLocalLogin(ctx, username, password, pref.getBoolean("registered", false))
 
                 logged_in = true
 
