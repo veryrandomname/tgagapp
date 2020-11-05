@@ -4,6 +4,9 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.Color
+import android.graphics.Point
 import android.media.AudioAttributes
 import android.media.AudioFocusRequest
 import android.media.AudioManager
@@ -15,17 +18,21 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
+import android.util.Log
 import android.view.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_YES
-import androidx.core.content.ContextCompat
-import androidx.core.content.ContextCompat.getSystemService
+import androidx.core.content.FileProvider
 import androidx.core.view.GestureDetectorCompat
 import com.google.android.material.snackbar.BaseTransientBottomBar.LENGTH_LONG
 import com.google.android.material.snackbar.BaseTransientBottomBar.LENGTH_SHORT
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.android.synthetic.main.activity_main.*
+import java.io.File
+import java.io.FileInputStream
+import java.io.FileOutputStream
+import java.nio.channels.FileChannel
 import kotlin.math.abs
 
 
@@ -143,6 +150,59 @@ class MainActivity : AppCompatActivity() {
             true
         }
 
+        R.id.share -> {
+            if (active_meme != null) {
+                val shareIntent: Intent = Intent().apply {
+                    action = Intent.ACTION_SEND
+
+                    val cachePath = File(applicationContext.cacheDir, "images")
+                    cachePath.mkdirs() // don't forget to make the directory
+
+
+                    val newFile = if (active_meme is ImageMeme) {
+                        val stream =
+                            FileOutputStream("$cachePath/image.png") // overwrites this image every time
+
+                        val bmp = (active_meme as ImageMeme).bitmap
+                        bmp.compress(Bitmap.CompressFormat.PNG, 100, stream)
+                        stream.close()
+
+                        val imagePath: File = File(applicationContext.cacheDir, "images")
+                        File(imagePath, "image.png")
+
+                    } else {
+                        val extension = (active_meme as VideoMeme).extension
+                        val filename = "video.$extension"
+                        val inStream = FileInputStream((active_meme as VideoMeme).file)
+                        val outStream =
+                            FileOutputStream("$cachePath/$filename") // overwrites this image every time
+                        val inChannel: FileChannel = inStream.channel
+                        val outChannel: FileChannel = outStream.channel
+                        inChannel.transferTo(0, inChannel.size(), outChannel)
+                        inStream.close()
+                        outStream.close()
+                        val imagePath: File = File(applicationContext.cacheDir, "images")
+                        File(imagePath, filename)
+                    }
+
+
+                    val contentUri: Uri = FileProvider.getUriForFile(
+                        applicationContext,
+                        "com.tgag.tgag.fileprovider",
+                        newFile
+                    )
+
+                    val shareIntent = Intent()
+                    shareIntent.action = Intent.ACTION_SEND
+                    shareIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION) // temp permission for receiving app to read this file
+                    shareIntent.setDataAndType(contentUri, contentResolver.getType(contentUri))
+                    shareIntent.putExtra(Intent.EXTRA_STREAM, contentUri)
+                    startActivity(Intent.createChooser(shareIntent, "Choose an app"))
+                }
+            }
+            true
+        }
+
         else -> {
             // If we got here, the user's action was not recognized.
             // Invoke the superclass to handle it.
@@ -218,7 +278,7 @@ class MainActivity : AppCompatActivity() {
             val res: Int = mAudioManager.requestAudioFocus(mFocusRequest!!)
             synchronized(mFocusLock) {
                 if (res == AudioManager.AUDIOFOCUS_REQUEST_FAILED) {
-                    mediaplayer?.setVolume(0f,0f)
+                    mediaplayer?.setVolume(0f, 0f)
                 } else if (res == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
                     if (volume)
                         mediaplayer?.setVolume(1f, 1f)
@@ -293,6 +353,8 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
         setSupportActionBar(findViewById(R.id.toolbar2))
 
+        val screenSize = Point()
+        windowManager.defaultDisplay.getRealSize(screenSize)
 
 
         val bigView = findViewById<View>(R.id.main_layout)
@@ -395,7 +457,10 @@ class MainActivity : AppCompatActivity() {
                     vX: Float,
                     vY: Float
                 ): Boolean {
-                    if (abs(vX) > abs(vY) && abs(vX) > 20) {
+                    if (abs(vX) > abs(vY) && abs(vX) > 0) {
+                        Log.v("cock", abs(vX).toString())
+                        if(ev2 != null && ev1 != null && ev2.eventTime - ev1.eventTime > 250)
+                            return false
 
                         ratingvisual.alpha = 1f
                         ratingvisual.scaleX = 1f
@@ -405,18 +470,18 @@ class MainActivity : AppCompatActivity() {
                         ratingvisual.animate().alpha(0f)
 
                         if (vX > 0) {
-                            ratingvisual.setImageResource(R.drawable.herz)
+                            ratingvisual.setImageResource(R.drawable.like)
                             if (active_meme != null)
                                 Client.rate_meme(applicationContext, active_meme!!, 2)
                         } else {
-                            ratingvisual.setImageResource(R.drawable.herzbroke)
+                            ratingvisual.setImageResource(R.drawable.dislike)
                             if (active_meme != null)
                                 Client.rate_meme(applicationContext, active_meme!!, 1)
                         }
 
                         update_meme()
 
-                        ratingvisual.bringToFront()
+                        //ratingvisual.bringToFront()
 
                     }
                     return true
@@ -439,32 +504,65 @@ class MainActivity : AppCompatActivity() {
 
             val imglist = ImageTouchListener(applicationContext)
 
+            val ratingvisual_x = ratingvisual.x
+            val ratingvisual_y = ratingvisual.y
+
             bigView.setOnTouchListener { v, event ->
                 when (event.action) {
                     MotionEvent.ACTION_DOWN -> {
                         defaultx = memeView(active_meme).x
                         memeView(active_meme).animate().cancel()
                         lastx = event.rawX
-                        true
+                        ratingvisual.visibility = View.VISIBLE
                     }
                     MotionEvent.ACTION_MOVE -> {
 
                         val dx = event.rawX - lastx
                         lastx = event.rawX
                         memeView(active_meme).x += dx
-                        true
+                        ratingvisual.x += dx
+
+                        ratingvisual.alpha = abs(memeView(active_meme).x.toFloat() / screenSize.x)
+                        if (memeView(active_meme).x >= 0)
+                            ratingvisual.setImageResource(R.drawable.like)
+                        else
+                            ratingvisual.setImageResource(R.drawable.dislike)
+
+
+                        val location = IntArray(2)
+                        imageView.getLocationOnScreen(location)
+                        //bigView.setBackgroundColor(Color.argb(location[0].toFloat()/size.x, 76f/255, 187f/255, 23f/255))
+
                     }
                     MotionEvent.ACTION_UP -> {
                         memeView(active_meme).animate().x(defaultx)
-                        false
+                        bigView.setBackgroundColor(Color.BLACK)
+                        ratingvisual.alpha = 0f
+
+                        ratingvisual.x = ratingvisual_x
+                        ratingvisual.y = ratingvisual_y
+
+                        if (active_meme != null) {
+                            val location = IntArray(2)
+                            memeView(active_meme).getLocationOnScreen(location)
+
+                            if (location[0] > screenSize.x * 0.50f) {
+                                Client.rate_meme(applicationContext, active_meme!!, 2)
+                                update_meme()
+                            } else if (location[0] < -screenSize.x * 0.505f) {
+                                Client.rate_meme(applicationContext, active_meme!!, 1)
+                                update_meme()
+                            }
+                        }
                     }
                     else -> {
-                        false
+
                     }
 
                 }
                 imglist.mDetector.onTouchEvent(event)
             }
+
 
             mute_button.setOnClickListener { _ ->
                 volume = !volume

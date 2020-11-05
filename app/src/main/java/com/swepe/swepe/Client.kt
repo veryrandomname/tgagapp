@@ -29,7 +29,7 @@ class ImageMeme(itemID: Int, val bitmap: Bitmap, title: String?, author: String?
     title,
     author
 )
-class VideoMeme(itemID: Int, val file: File, title: String?, author: String?) : Meme(
+class VideoMeme(itemID: Int, val file: File, title: String?, author: String?, val extension : String) : Meme(
     itemID,
     title,
     author
@@ -240,13 +240,13 @@ object Client {
                         { bytes: ByteArray ->
                             tmp = createTempFile(m.filename, null, ctx.cacheDir)
                             tmp.writeBytes(bytes)
-                            callback(VideoMeme(m.item_id, tmp, m.title, m.author))
+                            callback(VideoMeme(m.item_id, tmp, m.title, m.author, m.file_extension))
                         },
                         { _ -> })
 
                 getQueue(ctx).add(fileReq)
             } else {
-                callback(VideoMeme(m.item_id, tmp, m.title, m.author))
+                callback(VideoMeme(m.item_id, tmp, m.title, m.author, m.file_extension))
             }
         }
     }

@@ -14,5 +14,12 @@
         app:showAsAction="never"
         />
 
+    <item
+        android:id="@+id/share"
+        android:title="@string/share"
+        app:showAsAction="ifRoom"
+        android:icon="@drawable/share"
+        />
+
 </menu>
 
