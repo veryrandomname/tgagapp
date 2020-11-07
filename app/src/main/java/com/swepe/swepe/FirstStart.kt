@@ -18,16 +18,19 @@ class FirstStart : AppCompatActivity() {
         setContentView(R.layout.activity_first_start)
 
         val string = SpannableString( resources.getString(R.string.tos_accept))
+        /*
         string.setSpan(
             URLSpan("${Client.baseurl}/tos"),
             47,
             63,
             Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
         )
+         */
+
         string.setSpan(
             URLSpan("${Client.baseurl}/pp"),
-            69,
-            83,
+            47,
+            61,
             Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
         )
         tosview.text = string;
