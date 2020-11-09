@@ -399,7 +399,6 @@ class MainActivity : AppCompatActivity() {
         val setup = {
 
             var lastx = 0f
-            var defaultx = 0f
 
             val update_meme = {
                 active_meme?.let { Client.popMeme(it.itemID) }
@@ -451,6 +450,7 @@ class MainActivity : AppCompatActivity() {
                     return true
                 }
 
+
                 override fun onFling(
                     ev1: MotionEvent?,
                     ev2: MotionEvent?,
@@ -462,6 +462,8 @@ class MainActivity : AppCompatActivity() {
                         if(ev2 != null && ev1 != null && ev2.eventTime - ev1.eventTime > 250)
                             return false
 
+                        ratingvisual.x = ratingvisual.left.toFloat()
+                        ratingvisual.y = ratingvisual.top.toFloat()
                         ratingvisual.alpha = 1f
                         ratingvisual.scaleX = 1f
                         ratingvisual.scaleY = 1f
@@ -504,16 +506,17 @@ class MainActivity : AppCompatActivity() {
 
             val imglist = ImageTouchListener(applicationContext)
 
-            val ratingvisual_x = ratingvisual.x
-            val ratingvisual_y = ratingvisual.y
-
             bigView.setOnTouchListener { v, event ->
                 when (event.action) {
                     MotionEvent.ACTION_DOWN -> {
-                        defaultx = memeView(active_meme).x
                         memeView(active_meme).animate().cancel()
                         lastx = event.rawX
                         ratingvisual.visibility = View.VISIBLE
+
+                        ratingvisual.x = ratingvisual.left.toFloat()
+                        ratingvisual.y = ratingvisual.top.toFloat()
+                        ratingvisual.scaleX = 1f
+                        ratingvisual.scaleY = 1f
                     }
                     MotionEvent.ACTION_MOVE -> {
 
@@ -535,12 +538,10 @@ class MainActivity : AppCompatActivity() {
 
                     }
                     MotionEvent.ACTION_UP -> {
-                        memeView(active_meme).animate().x(defaultx)
+                        memeView(active_meme).animate().x(memeView(active_meme).left.toFloat())
                         bigView.setBackgroundColor(Color.BLACK)
                         ratingvisual.alpha = 0f
 
-                        ratingvisual.x = ratingvisual_x
-                        ratingvisual.y = ratingvisual_y
 
                         if (active_meme != null) {
                             val location = IntArray(2)
